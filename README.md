@@ -22,6 +22,11 @@ something important:
 | `ChatMenu` (number keys) | limited | yes | no |
 | **`custom_hud_layout`** | **yes** | **yes** | **yes** |
 
+The `PrintToCenterHtml` flicker does have a known community workaround —
+[CS2FlashingHtmlHudFix](https://github.com/M-archand/CS2FlashingHtmlHudFix), which keeps `GameRestart` set while
+`RestartRoundTime < Server.CurrentTime` (the trick is Poggu's). It holds the panel still, and it is worth knowing
+about if HTML in the centre of the screen is all you need. It does not give you clicks.
+
 The click column is the one that matters. Without it, menus have to run on number keys — and a server
 **cannot** rebind a player's keyboard. CS2 answers `Cannot execute concommand 'bind', missing required
 FCVAR flag`, and the commands those keys send (`slot1`, `buymenu`) never reach the server either. So
@@ -106,7 +111,7 @@ client will load them. Restart the game after each change — Panorama caches la
 
 ## Where this came from
 
-We built this for **[PROJECT ZERO](https://project-z0.ru)** — a CS2 world about the first day of an
+We built this for **[PROJECT ZERO](https://project-z0.ru/en)** — a CS2 world about the first day of an
 outbreak, where the game and the website are two halves of the same thing. The round shop in the
 screenshot is ours: it needed to show a full catalogue with unlock levels, which the stock buy menu
 cannot do because it only lists what a player put in their loadout.

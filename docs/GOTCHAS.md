@@ -127,6 +127,22 @@ buying is possible.
 
 ---
 
+## `PrintToCenterHtml` flashes once a second
+
+Not a `custom_hud_layout` problem, but it is why most people come looking for one, so it belongs here.
+
+An HTML centre message re-runs its entry animation about once a second. Nothing you do to the message stops it —
+the re-render is driven by the round timer, not by your call.
+
+**The workaround.** Poggu's trick, packaged by M-archand as
+[CS2FlashingHtmlHudFix](https://github.com/M-archand/CS2FlashingHtmlHudFix): keep `GameRestart` set while
+`RestartRoundTime < Server.CurrentTime`. The panel then holds still.
+
+Worth knowing, and enough if a static block of HTML in the centre of the screen is all you need. It does not make
+the thing clickable, and it does not give you a layout you control — that is what this library is for.
+
+---
+
 ## Changes to the layout do not show up
 
 Panorama caches layouts for the whole session. Reconnecting to the server is not enough — restart the

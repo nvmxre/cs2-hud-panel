@@ -21,6 +21,11 @@
 | `ChatMenu` (цифры) | ограниченно | да | нет |
 | **`custom_hud_layout`** | **да** | **да** | **да** |
 
+У мигания `PrintToCenterHtml` есть известный обходной путь —
+[CS2FlashingHtmlHudFix](https://github.com/M-archand/CS2FlashingHtmlHudFix): держать `GameRestart`, пока
+`RestartRoundTime < Server.CurrentTime` (приём Poggu). Панель перестаёт дёргаться, и если вам нужен только
+HTML по центру экрана — этого может хватить. Нажатий он не добавляет.
+
 Решает именно последний столбец. Без нажатий меню приходится делать на цифрах — а сервер **не может**
 переназначить клавиши игрока: CS2 отвечает `Cannot execute concommand 'bind', missing required FCVAR
 flag`, и сами команды этих клавиш (`slot1`, `buymenu`) до сервера тоже не доходят. Поэтому любое
