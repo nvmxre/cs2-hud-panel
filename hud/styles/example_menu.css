@@ -1,0 +1,121 @@
+/*
+  Example stylesheet for HudPanel.
+
+  This is Panorama CSS, not the web: layout comes from `flow-children`, elements are hidden with
+  `visibility: collapse`, and there is no display/flex. Colours accept `#rrggbb` and `#rrggbbaa`.
+
+  Hiding note. `visibility: collapse` alone leaves the panel able to swallow mouse input in some
+  cases, so the hidden state also drops opacity to zero and parks the window far off-screen. Belt,
+  braces and a third thing — this one is worth copying.
+*/
+
+.example-screen
+{
+	width: 100%;
+	height: 100%;
+}
+
+/* Dimmed backdrop, toggled together with the window. */
+.example-dim
+{
+	visibility: collapse;
+	width: 100%;
+	height: 100%;
+	background-color: #000000;
+	opacity: 0.55;
+}
+
+.example-dim.shown
+{
+	visibility: visible;
+}
+
+.example-window
+{
+	visibility: collapse;
+	opacity: 0;
+	position: -4000px 0px 0px;
+
+	width: 360px;
+	horizontal-align: center;
+	vertical-align: center;
+	flow-children: down;
+	padding: 16px;
+	background-color: #131211;
+	border: 1px solid #e7e2d924;
+	border-radius: 2px;
+}
+
+.example-window.shown
+{
+	visibility: visible;
+	opacity: 1;
+	position: 0px 0px 0px;
+}
+
+.example-title
+{
+	color: #e7e2d9ff;
+	font-size: 20px;
+	letter-spacing: 1px;
+	text-transform: uppercase;
+	margin-bottom: 12px;
+}
+
+.example-rows
+{
+	flow-children: down;
+	width: 100%;
+}
+
+.example-row
+{
+	width: 100%;
+	height: 34px;
+	margin-bottom: 4px;
+	padding: 0px 10px;
+	background-color: #26231f;
+	border: 1px solid #e7e2d90f;
+	border-radius: 2px;
+	transition-property: background-color, border-color;
+	transition-duration: 0.08s;
+}
+
+.example-row:hover
+{
+	background-color: #34302b;
+	border-color: #e7e2d93d;
+}
+
+/* Set from the plugin with SetClass(player, rowId, "picked", true). */
+.example-row.picked
+{
+	background-color: #2c3327;
+	border-color: #7f9a5a;
+}
+
+.example-row-text
+{
+	color: #e7e2d9ff;
+	font-size: 15px;
+	vertical-align: center;
+}
+
+.example-close
+{
+	width: 28px;
+	height: 22px;
+	margin-top: 8px;
+	horizontal-align: right;
+	background-color: #e7e2d90f;
+	border: 1px solid #e7e2d924;
+	border-radius: 2px;
+	color: #b9b3a8ff;
+	font-size: 14px;
+	text-align: center;
+}
+
+.example-close:hover
+{
+	background-color: #8a2f2a66;
+}

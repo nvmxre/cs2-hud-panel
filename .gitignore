@@ -1,0 +1,13 @@
+# Build output
+bin/
+obj/
+
+# Compiled Panorama resources — they are built from hud/ sources
+*.vxml_c
+*.vcss_c
+*.vtex_c
+
+# Editors
+.vs/
+.idea/
+*.user

@@ -1,0 +1,51 @@
+<!--
+  Example layout for HudPanel.
+
+  Two rules that cost hours to discover:
+
+  1. The root panel must NOT have an id. The resource compiler refuses the file outright:
+     "RESOURCE COMPILE ERROR: Found root panel with 'id' attribute, which is not permitted."
+     So visibility is toggled on a panel *inside* the root — here `example_root`.
+
+  2. Text is bound with {s:text}, and the panel needs an id for the plugin to address it.
+     The plugin then calls SetText(player, "example_title", "...") and each player sees their own.
+
+  There is no `scaling` attribute in CS2's Panorama — values from other Source 2 games make the
+  whole layout fail to load, with no error anywhere. Images are backgrounds instead, sized with
+  `background-size: contain` in the stylesheet.
+-->
+<root>
+	<styles>
+		<include src="s2r://panorama/styles/custom_game/example_menu.vcss_c" />
+	</styles>
+
+	<Panel class="example-screen" hittest="false">
+
+		<!-- Dimming lives on its own panel with an id. On the root it could never be switched off,
+		     because the root is always visible — only its children can be toggled. -->
+		<Panel id="example_dim" class="example-dim" hittest="false" />
+
+		<Panel id="example_root" class="example-window" hittest="true">
+
+			<Label id="example_title" class="example-title" text="{s:text}" />
+
+			<Panel class="example-rows" hittest="true">
+				<Button id="example_row_0" class="example-row">
+					<Label id="example_row_0_text" class="example-row-text" text="{s:text}" />
+				</Button>
+				<Button id="example_row_1" class="example-row">
+					<Label id="example_row_1_text" class="example-row-text" text="{s:text}" />
+				</Button>
+				<Button id="example_row_2" class="example-row">
+					<Label id="example_row_2_text" class="example-row-text" text="{s:text}" />
+				</Button>
+				<Button id="example_row_3" class="example-row">
+					<Label id="example_row_3_text" class="example-row-text" text="{s:text}" />
+				</Button>
+			</Panel>
+
+			<Button id="example_close" class="example-close"><Label text="&#10005;" /></Button>
+
+		</Panel>
+	</Panel>
+</root>
