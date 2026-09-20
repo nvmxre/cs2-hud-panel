@@ -4,10 +4,16 @@ Build real, flicker-free, **mouse-clickable** menus in CS2 from a CounterStrikeS
 `custom_hud_layout` entity Valve shipped on 24 August 2026 — and open them with the stock **B** key,
 no binds and no chat command.
 
-![Round shop built with HudPanel](assets/screenshot.png)
+![Round shop built with HudPanel, opened with the B key](assets/shop.jpg)
 
 *A 43-item shop built with this library — eight columns, weapon renders, per-player pricing and lock
-state. Everything you see is one panel entity driven from a plugin, and it opens on B.*
+state, a "buy for a teammate" panel. Everything you see is one panel entity driven from a plugin, and
+the stock B key opened it.*
+
+![Infected view: HP bar, ability icons and a veins overlay](assets/infected.jpg)
+
+*The same entity from the other side of the round: an HP bar, ability icons with their keys, veins
+growing over the screen — all of it classes and dialog variables toggled per player.*
 
 ---
 
