@@ -7,6 +7,10 @@
   Hiding note. `visibility: collapse` alone leaves the panel able to swallow mouse input in some
   cases, so the hidden state also drops opacity to zero and parks the window far off-screen. Belt,
   braces and a third thing — this one is worth copying.
+
+  Animation note. `@keyframes` that move `transform` do not run in custom_hud_layout at all. What
+  works is a `transition` on opacity/transform triggered by a class the plugin sets. Width, height
+  and visibility cannot be animated.
 */
 
 .example-screen
@@ -47,6 +51,26 @@
 }
 
 .example-window.shown
+{
+	visibility: visible;
+	opacity: 1;
+	position: 0px 0px 0px;
+}
+
+/*
+  Opened with the stock B key (see BuyMenuBridge). The client itself puts HUD_BUYMENU_VISIBLE on the
+  HUD root while the stock buy menu is open; the plugin only marks who is allowed (`native`), and this
+  rule does the showing. The stock menu is open UNDERNEATH at that moment, so the backdrop is nearly
+  opaque and catches the mouse (hittest="true" in the layout) — otherwise its labels show through the
+  gaps and a click between your rows buys an M4A1-S.
+*/
+.HUD_BUYMENU_VISIBLE .example-dim.native
+{
+	visibility: visible;
+	opacity: 0.985;
+}
+
+.HUD_BUYMENU_VISIBLE .example-window.native
 {
 	visibility: visible;
 	opacity: 1;

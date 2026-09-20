@@ -27,11 +27,13 @@ namespace HudPanels;
 /// <code>
 /// _panel = new HudPanel("panorama/layout/custom_game/my_menu.xml", Logger.LogInformation);
 /// _panel.Clicked += (player, buttonId) => player.PrintToChat($"clicked {buttonId}");
-/// _panel.Start(this);
+/// _panel.Start(this, hotReload);
 ///
 /// _panel.SetText(player, "title", "Hello");
-/// _panel.Show(player);
+/// _panel.Show(player, "my_root");
 /// </code>
+///
+/// To open the panel with the stock B key instead of a command, add a <see cref="BuyMenuBridge"/>.
 /// </summary>
 public sealed class HudPanel
 {
@@ -40,6 +42,12 @@ public sealed class HudPanel
 
     private CCSCustomHudLayout? _entity;
     private readonly HashSet<int> _visible = new();
+
+    /// <summary>
+    /// A map is loaded and entities may be touched. False on a cold start until the first round
+    /// begins — see <see cref="Start"/> for why that matters.
+    /// </summary>
+    private bool _worldReady;
 
     /// <summary>A player clicked a Button in the layout. The argument is that button's `id`.</summary>
     public event Action<CCSPlayerController, string>? Clicked;
@@ -57,14 +65,31 @@ public sealed class HudPanel
         _log = log;
     }
 
-    /// <summary>Is the panel currently shown to this player.</summary>
+    /// <summary>Is the panel currently shown to this player (by <see cref="Show"/>, not by the B key).</summary>
     public bool IsVisible(int playerSlot) => _visible.Contains(playerSlot);
 
-    public void Start(BasePlugin plugin)
+    /// <summary>The entity itself, or null while it does not exist. For calls this wrapper does not cover.</summary>
+    public CCSCustomHudLayout? Entity => _entity is not null && _entity.IsValid ? _entity : null;
+
+    /// <summary>
+    /// Call this from <c>Load</c> and pass the <c>hotReload</c> flag it received.
+    ///
+    /// The flag decides when the entity is created. On a hot reload a map is running and the panel
+    /// spawns at once. On a cold start it waits for the first round to begin — the earliest moment
+    /// entities exist. Touching the entity list before that (in <c>Load</c>, in <c>OnMapStart</c>,
+    /// which fires at the *beginning* of the load, or from a timer started in <c>Load</c>) throws
+    /// "Entity system yet is not initialized", and CounterStrikeSharp caches that failure for the life
+    /// of the process: the plugin stays blind on a perfectly healthy server until it is restarted.
+    /// </summary>
+    public void Start(BasePlugin plugin, bool hotReload)
     {
         plugin.RegisterListener<Listeners.OnCustomHudClicked>(OnClicked);
-        // Entities do not survive a map change, so the panel is recreated on every map.
-        plugin.RegisterListener<Listeners.OnMapStart>(_ => Server.NextWorldUpdate(Spawn));
+        plugin.RegisterListener<Listeners.OnMapEnd>(OnMapEnd);
+        // Entities do not survive a map change; a round start is the first safe moment on every map.
+        plugin.RegisterEventHandler<EventRoundStart>(OnRoundStart);
+
+        if (!hotReload) return;
+        _worldReady = true;
         Spawn();
     }
 
@@ -79,14 +104,44 @@ public sealed class HudPanel
     public void Stop(BasePlugin plugin)
     {
         plugin.RemoveListener<Listeners.OnCustomHudClicked>(OnClicked);
+        plugin.RemoveListener<Listeners.OnMapEnd>(OnMapEnd);
+        plugin.DeregisterEventHandler<EventRoundStart>(OnRoundStart);
         HideAll();
 
         if (_entity is not null && _entity.IsValid) _entity.Remove();
         _entity = null;
     }
 
+    /// <summary>
+    /// Create the entity if it is missing. Takes a player as proof that a map is loaded — a live
+    /// controller cannot exist before one. Returns whether the entity is usable.
+    /// </summary>
+    public bool EnsureSpawned(CCSPlayerController player)
+    {
+        if (!player.IsValid) return false;
+        _worldReady = true;
+        if (_entity is null || !_entity.IsValid) Spawn();
+        return _entity is not null && _entity.IsValid;
+    }
+
+    private HookResult OnRoundStart(EventRoundStart @event, GameEventInfo info)
+    {
+        _worldReady = true;
+        Spawn();
+        return HookResult.Continue;
+    }
+
+    private void OnMapEnd()
+    {
+        // The map takes the entity with it; the next round start makes a new one.
+        _worldReady = false;
+        _entity = null;
+        _visible.Clear();
+    }
+
     private void Spawn()
     {
+        if (!_worldReady) return;
         if (_entity is not null && _entity.IsValid) return;
 
         try
@@ -140,17 +195,28 @@ public sealed class HudPanel
     }
 
     /// <summary>
+    /// Give or take the cursor without touching visibility. <see cref="BuyMenuBridge"/> needs this:
+    /// while the stock buy menu is open the client shows the panel on its own, but clicks only reach
+    /// the server under input capture.
+    /// </summary>
+    public void CaptureInput(CCSPlayerController player, bool on)
+    {
+        if (_entity is null || !_entity.IsValid || !player.IsValid) return;
+        _entity.SetInputCaptureEnabled(player, on);
+    }
+
+    /// <summary>
     /// Show the panel: adds <paramref name="visibleClass"/> to the root panel id and gives the player
     /// a cursor. Your stylesheet decides what that class means.
     /// </summary>
     public void Show(CCSPlayerController player, string rootPanelId, string visibleClass = "shown")
     {
-        if (_entity is null || !_entity.IsValid) Spawn();
-        if (_entity is null || !_entity.IsValid || !player.IsValid || player.IsBot) return;
+        if (!player.IsValid || player.IsBot) return;
+        if (!EnsureSpawned(player)) return;
 
         _visible.Add(player.Slot);
         SetClass(player, rootPanelId, visibleClass, true);
-        _entity.SetInputCaptureEnabled(player, true);
+        _entity!.SetInputCaptureEnabled(player, true);
     }
 
     /// <summary>Hide the panel and release the cursor.</summary>

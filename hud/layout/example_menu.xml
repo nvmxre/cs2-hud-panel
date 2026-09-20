@@ -1,7 +1,7 @@
 <!--
   Example layout for HudPanel.
 
-  Two rules that cost hours to discover:
+  Three rules that cost hours to discover:
 
   1. The root panel must NOT have an id. The resource compiler refuses the file outright:
      "RESOURCE COMPILE ERROR: Found root panel with 'id' attribute, which is not permitted."
@@ -10,9 +10,15 @@
   2. Text is bound with {s:text}, and the panel needs an id for the plugin to address it.
      The plugin then calls SetText(player, "example_title", "...") and each player sees their own.
 
+  3. The backdrop catches the mouse (hittest="true"). When the panel is opened with the B key the
+     stock buy menu is open UNDERNEATH it, and a click between your rows would land on one of its
+     tiles. The stylesheet makes the backdrop nearly opaque in that state for the same reason.
+
   There is no `scaling` attribute in CS2's Panorama — values from other Source 2 games make the
-  whole layout fail to load, with no error anywhere. Images are backgrounds instead, sized with
-  `background-size: contain` in the stylesheet.
+  whole layout fail to load, with no error anywhere. An <Image> with a stock .vsvg does the same.
+  Images are backgrounds instead, sized with `background-size: contain` in the stylesheet.
+
+  Only Panel, Label, Image and Button are allowed here; any other panel type is rejected by the host.
 -->
 <root>
 	<styles>
@@ -23,7 +29,7 @@
 
 		<!-- Dimming lives on its own panel with an id. On the root it could never be switched off,
 		     because the root is always visible — only its children can be toggled. -->
-		<Panel id="example_dim" class="example-dim" hittest="false" />
+		<Panel id="example_dim" class="example-dim" hittest="true" />
 
 		<Panel id="example_root" class="example-window" hittest="true">
 
