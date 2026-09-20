@@ -182,7 +182,7 @@ for CounterStrikeSharp. If it saves you an evening, that is the point.
 
 * **1.1 — 21 September 2026.** `BuyMenuBridge`: the panel opens on the stock B key. `HudPanel.Start`
   now takes the `hotReload` flag and spawns on round start, which closes the entity-system trap on a
-  cold start. `CaptureInput`, `EnsureSpawned` and `Entity` added. Seven new gotchas. The buy-menu
+  cold start. `CaptureInput`, `EnsureSpawned` and `Entity` added. Eight new gotchas. The buy-menu
   advice of 1.0 ("disable buying") was wrong and is withdrawn.
 * **1.0 — 11 September 2026.** First release.
 

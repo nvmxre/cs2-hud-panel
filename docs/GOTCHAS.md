@@ -124,6 +124,25 @@ after spawn the client may not have applied the layout yet and will overwrite yo
 
 ---
 
+## A class set once, right after connect, never shows up
+
+**Symptom.** A rank icon and a team stripe next to a player's name stay blank for some players,
+while the text beside them is right. The same class on another panel works. Nothing in any log.
+
+**The reading that fits the evidence.** Per-player classes and per-player dialog variables travel in
+different vectors of the entity's networked state. A class set while the client is still loading the
+map and the layout does not land on a panel that exists yet — and a plugin that records the class as
+"already set" never sends it again. The text survives because dialog variables are re-applied when
+the label is built. Everything that gets re-sent anyway (a `hidden` toggle every tick, a torch state
+that changes) looks fine, which is what makes it confusing.
+
+**Fix.** Do not memoise "already set" across a player's connect. Forget it when the player spawns and
+again a couple of seconds later, and forget everything when the entity is recreated. This library keeps
+no such memo — every `SetClass` call goes out — so the trap only bites if you add one for performance.
+If you do, clear it in the same places where you hide the panel on spawn.
+
+---
+
 ## `Entity system yet is not initialized` — and it never recovers
 
 **Symptom.** The server is healthy: map loaded, players running around, `status` clean. The plugin does
