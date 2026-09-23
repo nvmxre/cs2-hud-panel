@@ -64,6 +64,7 @@ public static class UIKit
     {
         if (_plugin is null) return;
         Toasts.Stop();
+        Votes.Stop();
         foreach (var panel in Panels.ToList())
         {
             panel.HideAll();
@@ -163,6 +164,7 @@ public static class UIKit
         WorldReady = false;
         foreach (var panel in Panels) panel.Detach();
         Toasts.Reset();
+        Votes.Reset();
     }
 
     private static void OnClicked(CCSPlayerController player, CCSCustomHudLayout layout, string buttonId)
@@ -188,6 +190,7 @@ public static class UIKit
     {
         foreach (var panel in Panels) panel.ForgetSlot(slot);
         Toasts.Forget(slot);
+        Votes.Forget(slot);
     }
 
     // ── diagnostics ──────────────────────────────────────────────────────────────────────────────

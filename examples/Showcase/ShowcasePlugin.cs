@@ -42,6 +42,20 @@ public sealed class ShowcasePlugin : BasePlugin
         ("New unit invite", "Last Hope wants you in. Open the menu to answer.", ToastStyle.Neutral, "https://project-z0.ru/factions"),
     };
 
+    /// <summary>css_vote [2|3|4|5] — a yes/no vote by default, or a map vote with that many options.</summary>
+    [ConsoleCommand("css_vote", "Start a vote: css_vote [2|3|4|5]")]
+    public void OnVote(CCSPlayerController? player, CommandInfo command)
+    {
+        var arg = command.ArgCount > 1 ? command.GetArg(1) : "";
+        var maps = new[] { "Dust II", "Inferno", "Mirage", "Nuke", "Ancient" };
+        var denied = int.TryParse(arg, out var n) && n is >= 3 and <= 5
+            ? Votes.Start(new VoteRequest { Question = "Which map next?", Options = maps[..n], Seconds = 25 },
+                r => Logger.LogInformation("vote: winner {Winner}, counts {Counts}", r.Winner, string.Join("/", r.Counts)))
+            : Votes.Start(new VoteRequest { Question = "Restart the round?", Seconds = 20 },
+                r => Logger.LogInformation("vote: {Result}, {Yes} yes / {No} no", r.Passed ? "passed" : "failed", r.Counts[0], r.Counts[1]));
+        command.ReplyToCommand(denied == VoteDenied.None ? "Vote started." : $"Vote not started: {denied}");
+    }
+
     /// <summary>css_toast [random|info|success|warning|danger|neutral|all] — a random toast by default, one style, or one of each.</summary>
     [ConsoleCommand("css_toast", "Show a toast: css_toast [random|info|success|warning|danger|neutral|all]")]
     public void OnToast(CCSPlayerController? player, CommandInfo command)
