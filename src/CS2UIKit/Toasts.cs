@@ -198,7 +198,8 @@ public static class Toasts
 
         if (liftFrom < 0) return;
         var slot = player.Slot;
-        UIKit.Plugin.AddTimer(0.05f, () =>
+        // Released in a clearly later network update: in the same one the client never sees the pushed-down state.
+        UIKit.Plugin.AddTimer(0.12f, () =>
         {
             var p = Utilities.GetPlayerFromSlot(slot);
             if (p is null || !p.IsValid || _panel is null) return;

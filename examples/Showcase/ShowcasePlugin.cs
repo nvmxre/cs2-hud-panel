@@ -27,12 +27,34 @@ public sealed class ShowcasePlugin : BasePlugin
             Toasts.Show(player, "Sound check", Toasts.Sound ?? "silent", ToastStyle.Neutral);
     }
 
-    /// <summary>css_toast [info|success|warning|danger|neutral|all] — one toast, or one of each.</summary>
-    [ConsoleCommand("css_toast", "Show a toast: css_toast [info|success|warning|danger|neutral|all]")]
+    /// <summary>A pool for css_toast without arguments: every style, with and without a message or a link.</summary>
+    private static readonly (string Title, string? Message, ToastStyle Style, string? Link)[] Samples =
+    {
+        ("Airdrop incoming", "Crates land in 10 seconds.", ToastStyle.Info, null),
+        ("Round started", null, ToastStyle.Info, null),
+        ("Bleeding stopped", "The medkit did its job.", ToastStyle.Success, null),
+        ("Achievement unlocked", "Survive a round without being bitten.", ToastStyle.Success, null),
+        ("You are bleeding", "Find cover and use a medkit.", ToastStyle.Warning, null),
+        ("Global Cooldown 20 Hours", "VAC has flagged your gameplay as irregular", ToastStyle.Warning, "https://blog.counter-strike.net/index.php/faq"),
+        ("The first infected has turned", "Stay together. Watch your backs.", ToastStyle.Danger, null),
+        ("Connection to the site lost", "Your progress is saved and will sync later.", ToastStyle.Danger, null),
+        ("Server restart", "The map changes in 2 minutes.", ToastStyle.Neutral, null),
+        ("New unit invite", "Last Hope wants you in. Open the menu to answer.", ToastStyle.Neutral, "https://project-z0.ru/factions"),
+    };
+
+    /// <summary>css_toast [random|info|success|warning|danger|neutral|all] — a random toast by default, one style, or one of each.</summary>
+    [ConsoleCommand("css_toast", "Show a toast: css_toast [random|info|success|warning|danger|neutral|all]")]
     public void OnToast(CCSPlayerController? player, CommandInfo command)
     {
         if (player is null || !player.IsValid) return;
-        var arg = command.ArgCount > 1 ? command.GetArg(1).ToLowerInvariant() : "warning";
+        var arg = command.ArgCount > 1 ? command.GetArg(1).ToLowerInvariant() : "random";
+
+        if (arg == "random")
+        {
+            var (sampleTitle, sampleMessage, sampleStyle, sampleLink) = Samples[Random.Shared.Next(Samples.Length)];
+            Toasts.Show(player, sampleTitle, sampleMessage, sampleStyle, link: sampleLink);
+            return;
+        }
 
         if (arg == "all")
         {

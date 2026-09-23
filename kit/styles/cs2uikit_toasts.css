@@ -73,8 +73,10 @@
 {
 	visibility: collapse;
 	opacity: 0;
-	transform: translatex( 28px );
-	transition: opacity 0.28s ease-out 0s, transform 0.28s ease-out 0s;
+	/* Every state uses translate3d: Panorama cannot tween between different transform functions
+	   (translatex -> translatey snapped instead of gliding). */
+	transform: translate3d( 28px, 0px, 0px );
+	transition: opacity 0.28s ease-out 0s, transform 0.32s ease-in-out 0s;
 
 	width: 460px;
 	height: 104px;
@@ -90,19 +92,19 @@
 {
 	visibility: visible;
 	opacity: 1;
-	transform: translatex( 0px );
+	transform: translate3d( 0px, 0px, 0px );
 }
 
 .toast.on.leaving
 {
 	opacity: 0;
-	transform: translatex( 28px );
+	transform: translate3d( 28px, 0px, 0px );
 }
 
 /* One card + margin down, instantly. The plugin removes .lift next beat, and the base transition glides it up. */
 .toast.on.lift
 {
-	transform: translatey( 114px );
+	transform: translate3d( 0px, 114px, 0px );
 	transition-duration: 0s;
 }
 
