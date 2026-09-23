@@ -24,9 +24,10 @@ public enum ToastStyle
 public enum ToastPosition { TopRight, TopLeft, BottomRight, BottomLeft }
 
 /// <summary>
-/// Toast notifications: a dark rounded card with a soft wash of the style colour, a round icon, a bold title, an
-/// optional message and link. Up to four are stacked per player, newest on top; each slides in, stays for its time
-/// and slides out. They never take the cursor, so a notice cannot interrupt aiming, and play a short UI sound.
+/// Toast notifications: a dark frosted card with a soft wash of the style colour, a round icon, a bold title, an
+/// optional message and link. Up to four are stacked per player, oldest on top: a new toast slides in at the bottom
+/// without disturbing the others, and when one leaves, the ones below glide up. They never take the cursor, so a
+/// notice cannot interrupt aiming, and play a short UI sound.
 ///
 /// <code>
 /// Toasts.Show(player, "Round started", "One of you is already infected.", ToastStyle.Warning);
@@ -63,6 +64,12 @@ public static class Toasts
     /// <summary>Length of the slide-out, seconds. Matches the transition in the stylesheet.</summary>
     private const double LeaveSeconds = 0.3;
 
+    /// <summary>
+    /// Wait before the very first card of a player. The stack becomes visible first; a card switched on in the same
+    /// network update skips its transition and pops in, so it gets a clearly separate update.
+    /// </summary>
+    private const float FirstShowDelay = 0.35f;
+
     private sealed class Card
     {
         public required string Title;
@@ -84,36 +91,52 @@ public static class Toasts
         var panel = EnsurePanel();
 
         if (!Stacks.TryGetValue(player.Slot, out var stack)) Stacks[player.Slot] = stack = new List<Card>();
-        stack.Insert(0, new Card
+        var card = new Card
         {
             Title = title,
             Message = message ?? string.Empty,
             Link = link ?? string.Empty,
             Style = style,
             Until = Server.CurrentTime + Math.Max(1f, seconds ?? DefaultSeconds),
-        });
-        if (stack.Count > Slots) stack.RemoveRange(Slots, stack.Count - Slots);
+        };
 
         PlaySound(player, style);
 
-        var fresh = !panel.IsOpen(player);
-        if (fresh)
+        if (!panel.IsOpen(player))
         {
+            // First toast for this player: show the (empty) stack now and the card a beat later — see FirstShowDelay.
+            // The stack then stays shown for good, so later toasts never hit this again.
             panel.Show(player);
             panel.SetVariant(player, "toasts", "pos-", PositionClass(Position));
-            // The stack appears in this very frame. A card switched on in the same frame skips its transition —
-            // the first toast would pop in while the next ones slide. One short beat lets the stack settle first.
+            stack.Add(card);
             var slot = player.Slot;
-            UIKit.Plugin.AddTimer(0.06f, () =>
+            UIKit.Plugin.AddTimer(FirstShowDelay, () =>
             {
                 var p = Utilities.GetPlayerFromSlot(slot);
-                if (p is not null && p.IsValid && Stacks.TryGetValue(slot, out var s)) Render(p, s);
+                if (p is not null && p.IsValid && Stacks.TryGetValue(slot, out var st)) Render(p, st);
             });
             return;
         }
 
         panel.SetVariant(player, "toasts", "pos-", PositionClass(Position));
-        Render(player, stack);
+        if (stack.Count >= Slots)
+        {
+            // Full: the oldest (top) makes room at once and the rest glide up; the new card joins at the bottom a moment
+            // later, so it slides in like any other instead of appearing in a slot that is already on.
+            stack.RemoveAt(0);
+            Render(player, stack, liftFrom: 0);
+            var slot = player.Slot;
+            UIKit.Plugin.AddTimer((float)LeaveSeconds, () =>
+            {
+                var p = Utilities.GetPlayerFromSlot(slot);
+                if (p is null || !p.IsValid || !Stacks.TryGetValue(slot, out var st) || st.Count >= Slots) return;
+                st.Add(card);
+                RenderSlot(p, st.Count - 1, card);
+            });
+            return;
+        }
+        stack.Add(card);
+        RenderSlot(player, stack.Count - 1, card);
     }
 
     /// <summary>Show the same toast to every human on the server.</summary>
@@ -151,10 +174,11 @@ public static class Toasts
     }
 
     /// <summary>
-    /// Fill the slots from the stack: slot 0 is the newest. The layout has no way to insert a card, so a new toast
-    /// re-fills every slot below it — cards "move down" by getting their neighbour's text.
+    /// Fill every slot from the stack (slot 0 = oldest, top). With <paramref name="liftFrom"/> the slots from that index
+    /// on are re-filled one card higher than before, so they are pushed down by one card instantly (<c>.lift</c>) and
+    /// released a beat later to glide up into place — the layout itself cannot animate a reflow.
     /// </summary>
-    private static void Render(CCSPlayerController player, List<Card> stack)
+    private static void Render(CCSPlayerController player, List<Card> stack, int liftFrom = -1)
     {
         var panel = _panel!;
         for (var i = 0; i < Slots; i++)
@@ -164,18 +188,36 @@ public static class Toasts
             {
                 panel.SetClass(player, id, "on", false);
                 panel.SetClass(player, id, "leaving", false);
+                panel.SetClass(player, id, "lift", false);
                 continue;
             }
-            var card = stack[i];
-            panel.SetText(player, id + "_title", card.Title);
-            panel.SetText(player, id + "_msg", card.Message);
-            panel.SetText(player, id + "_link", card.Link);
-            panel.SetClass(player, id, "has-msg", card.Message.Length > 0);
-            panel.SetClass(player, id, "has-link", card.Link.Length > 0);
-            panel.SetVariant(player, id, "style-", card.Style.ToString().ToLowerInvariant());
-            panel.SetClass(player, id, "leaving", card.Leaving);
-            panel.SetClass(player, id, "on", true);
+            var lift = liftFrom >= 0 && i >= liftFrom;
+            panel.SetClass(player, id, "lift", lift);
+            RenderSlot(player, i, stack[i]);
         }
+
+        if (liftFrom < 0) return;
+        var slot = player.Slot;
+        UIKit.Plugin.AddTimer(0.05f, () =>
+        {
+            var p = Utilities.GetPlayerFromSlot(slot);
+            if (p is null || !p.IsValid || _panel is null) return;
+            for (var i = 0; i < Slots; i++) _panel.SetClass(p, $"t{i}", "lift", false);
+        });
+    }
+
+    private static void RenderSlot(CCSPlayerController player, int index, Card card)
+    {
+        var panel = _panel!;
+        var id = $"t{index}";
+        panel.SetText(player, id + "_title", card.Title);
+        panel.SetText(player, id + "_msg", card.Message);
+        panel.SetText(player, id + "_link", card.Link);
+        panel.SetClass(player, id, "has-msg", card.Message.Length > 0);
+        panel.SetClass(player, id, "has-link", card.Link.Length > 0);
+        panel.SetVariant(player, id, "style-", card.Style.ToString().ToLowerInvariant());
+        panel.SetClass(player, id, "leaving", card.Leaving);
+        panel.SetClass(player, id, "on", true);
     }
 
     /// <summary>
@@ -204,13 +246,12 @@ public static class Toasts
                 _panel.SetClass(player, $"t{i}", "leaving", true);
             }
 
-            if (stack.RemoveAll(c => c.Leaving && c.Until <= now) == 0) continue;
-            Render(player, stack);
-            if (stack.Count == 0)
-            {
-                Stacks.Remove(slot);
-                _panel.Hide(player);
-            }
+            var first = stack.FindIndex(c => c.Leaving && c.Until <= now);
+            if (first < 0) continue;
+            stack.RemoveAll(c => c.Leaving && c.Until <= now);
+            // Cards that were below the removed one move up a slot and glide into place. The stack itself stays
+            // shown even when empty: hiding it would make the next first toast pop in again.
+            Render(player, stack, liftFrom: first);
         }
     }
 

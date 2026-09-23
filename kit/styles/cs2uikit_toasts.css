@@ -4,9 +4,12 @@
 
   Panorama, not the web: flow-children instead of flex, visibility: collapse to hide, gradients in the 2008 WebKit
   form, and transitions only on opacity/transform triggered by a class (keyframes on transform do not run in
-  custom_hud_layout). Enter and leave are both transitions:
-    .on       — the card takes its place and fades/slides in;
-    .leaving  — it fades/slides out while still holding its place; the plugin removes .on right after.
+  custom_hud_layout; height and reflow cannot be animated at all). The stack is oldest on top, newest at the bottom:
+    .on       — the card takes its place and fades/slides in from the right;
+    .leaving  — it fades/slides out while still holding its place; the plugin removes it right after;
+    .lift     — the cards below a removed one are re-filled one slot higher and instantly pushed down by one card
+                (no transition); removing .lift a moment later lets them glide up into place.
+  That is why every card has the same fixed height: the push-down distance must match one card exactly.
 */
 
 .cs2uikit-screen
@@ -74,10 +77,13 @@
 	transition: opacity 0.28s ease-out 0s, transform 0.28s ease-out 0s;
 
 	width: 460px;
+	height: 104px;
 	margin-bottom: 10px;
 	flow-children: right;
 	border-radius: 8px;
-	background-color: #25292fee;
+	background-color: #25292fd9;
+	/* Frosted glass: blur the game world behind the card. */
+	world-blur: gaussian( 6, 6, 1 );
 }
 
 .toast.on
@@ -91,6 +97,13 @@
 {
 	opacity: 0;
 	transform: translatex( 28px );
+}
+
+/* One card + margin down, instantly. The plugin removes .lift next beat, and the base transition glides it up. */
+.toast.on.lift
+{
+	transform: translatey( 114px );
+	transition-duration: 0s;
 }
 
 /* Round icon: a dim halo with the coloured dot inside, the glyph washed dark on the dot. */
@@ -148,6 +161,8 @@
 	font-size: 17px;
 	margin-top: 2px;
 	width: 100%;
+	max-height: 44px;
+	text-overflow: ellipsis;
 }
 
 .toast.has-msg .toast-msg
@@ -176,12 +191,12 @@
 
 .toast.style-info
 {
-	background-color: gradient( linear, 0% 0%, 100% 0%, from( #1f2d44ee ), color-stop( 0.45, #25292fee ), to( #25292fee ) );
+	background-color: gradient( linear, 0% 0%, 100% 0%, from( #1f2d44d9 ), color-stop( 0.45, #25292fd9 ), to( #25292fd9 ) );
 }
 
 .toast.style-success
 {
-	background-color: gradient( linear, 0% 0%, 100% 0%, from( #1d3b31ee ), color-stop( 0.45, #25292fee ), to( #25292fee ) );
+	background-color: gradient( linear, 0% 0%, 100% 0%, from( #1d3b31d9 ), color-stop( 0.45, #25292fd9 ), to( #25292fd9 ) );
 }
 
 .toast.style-success .toast-dot
@@ -196,7 +211,7 @@
 
 .toast.style-warning
 {
-	background-color: gradient( linear, 0% 0%, 100% 0%, from( #3a3622ee ), color-stop( 0.45, #25292fee ), to( #25292fee ) );
+	background-color: gradient( linear, 0% 0%, 100% 0%, from( #3a3622d9 ), color-stop( 0.45, #25292fd9 ), to( #25292fd9 ) );
 }
 
 .toast.style-warning .toast-dot
@@ -211,7 +226,7 @@
 
 .toast.style-danger
 {
-	background-color: gradient( linear, 0% 0%, 100% 0%, from( #3d272cee ), color-stop( 0.45, #25292fee ), to( #25292fee ) );
+	background-color: gradient( linear, 0% 0%, 100% 0%, from( #3d272cd9 ), color-stop( 0.45, #25292fd9 ), to( #25292fd9 ) );
 }
 
 .toast.style-danger .toast-dot
