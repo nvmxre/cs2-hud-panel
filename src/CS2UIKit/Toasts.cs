@@ -20,27 +20,29 @@ public enum ToastStyle
     Neutral,
 }
 
-/// <summary>Where the toast stack sits on screen.</summary>
+/// <summary>Where the toast stack sits on screen. In the bottom positions the stack grows upward.</summary>
 public enum ToastPosition { TopRight, TopLeft, BottomRight, BottomLeft }
 
 /// <summary>
 /// Toast notifications: a dark frosted card with a soft wash of the style colour, a round icon, a bold title, an
-/// optional message and link. Up to four are stacked per player, oldest on top: a new toast slides in at the bottom
-/// without disturbing the others, and when one leaves, the ones below glide up. They never take the cursor, so a
-/// notice cannot interrupt aiming, and play a short UI sound.
+/// optional message and link. Up to four per player, oldest first: a new toast slides in after the others, and when
+/// one leaves, the ones after it glide into its place. They never take the cursor, so a notice cannot interrupt
+/// aiming, and play a short UI sound.
 ///
 /// <code>
 /// Toasts.Show(player, "Round started", "One of you is already infected.", ToastStyle.Warning);
 /// Toasts.ShowAll("Airdrop incoming", "Crates land in 10 seconds.", ToastStyle.Info, seconds: 8);
 /// </code>
 ///
-/// Needs the CS2UIKit Workshop addon on clients (the layout ships there).
+/// How it moves: the layout has four card panels that all sit at the same spot. A card's place in the stack is only a
+/// transform (<c>row-0</c>…<c>row-3</c>), so moving a card up is a plain transform tween — text never moves between
+/// panels and nothing reflows (Panorama cannot animate a reflow). Needs the CS2UIKit Workshop addon on clients.
 /// </summary>
 public static class Toasts
 {
     public const string Layout = "panorama/layout/custom_game/cs2uikit_toasts.xml";
 
-    /// <summary>Cards visible at once per player. The layout has exactly this many slots.</summary>
+    /// <summary>Cards visible at once per player. The layout has exactly this many card panels.</summary>
     public const int Slots = 4;
 
     /// <summary>Default time on screen, seconds.</summary>
@@ -65,24 +67,33 @@ public static class Toasts
     private const double LeaveSeconds = 0.3;
 
     /// <summary>
-    /// Wait before the very first card of a player. The stack becomes visible first; a card switched on in the same
-    /// network update skips its transition and pops in, so it gets a clearly separate update.
+    /// A new card gets its text, style and row first and is switched on in a later network update: switched on in the
+    /// same update it would skip the slide-in.
     /// </summary>
-    private const float FirstShowDelay = 0.35f;
+    private const float EnterDelay = 0.1f;
 
     private sealed class Card
     {
-        public required string Title;
-        public required string Message;
-        public required string Link;
-        public required ToastStyle Style;
+        public required int Panel;          // which of the four card panels (t0…t3) shows it
+        public int Row;                     // place in the stack, 0 = first
         public required double Until;
         public bool Leaving;
     }
 
     private static Panel? _panel;
     private static CounterStrikeSharp.API.Modules.Timers.Timer? _timer;
+
+    /// <summary>Cards per player in stack order (first = oldest). Leaving cards stay until they are gone.</summary>
     private static readonly Dictionary<int, List<Card>> Stacks = new();
+
+    /// <summary>Row each card panel was last put in, per player: a freed panel keeps resting at its old row.</summary>
+    private static readonly Dictionary<int, int[]> PanelRows = new();
+
+    /// <summary>
+    /// When a reused panel moves to another row, it glides there invisible first (the row tween is 0.32 s) and only
+    /// then slides in — otherwise the slide-in would go diagonally.
+    /// </summary>
+    private const float MovedEnterDelay = 0.4f;
 
     public static void Show(CCSPlayerController player, string title, string? message = null,
         ToastStyle style = ToastStyle.Info, float? seconds = null, string? link = null)
@@ -90,53 +101,68 @@ public static class Toasts
         if (!player.IsValid || player.IsBot) return;
         var panel = EnsurePanel();
 
-        if (!Stacks.TryGetValue(player.Slot, out var stack)) Stacks[player.Slot] = stack = new List<Card>();
-        var card = new Card
-        {
-            Title = title,
-            Message = message ?? string.Empty,
-            Link = link ?? string.Empty,
-            Style = style,
-            Until = Server.CurrentTime + Math.Max(1f, seconds ?? DefaultSeconds),
-        };
+        if (!panel.IsOpen(player)) panel.Show(player);
+        var bottom = Position is ToastPosition.BottomLeft or ToastPosition.BottomRight;
+        panel.SetVariant(player, "toasts", "pos-", PositionClass(Position));
+        panel.SetClass(player, "toasts", "stack-up", bottom);
 
+        if (!Stacks.TryGetValue(player.Slot, out var stack)) Stacks[player.Slot] = stack = new List<Card>();
         PlaySound(player, style);
 
-        if (!panel.IsOpen(player))
+        var until = Server.CurrentTime + Math.Max(1f, seconds ?? DefaultSeconds);
+        var free = FreePanel(stack);
+        if (free < 0)
         {
-            // First toast for this player: show the (empty) stack now and the card a beat later — see FirstShowDelay.
-            // The stack then stays shown for good, so later toasts never hit this again.
-            panel.Show(player);
-            panel.SetVariant(player, "toasts", "pos-", PositionClass(Position));
-            stack.Add(card);
+            // All four panels are busy: the oldest card leaves now, and the new one comes in once its panel is free.
+            var oldest = stack.FirstOrDefault(c => !c.Leaving);
+            if (oldest is not null) StartLeaving(player, oldest);
             var slot = player.Slot;
-            UIKit.Plugin.AddTimer(FirstShowDelay, () =>
+            var left = (float)Math.Max(1.0, until - Server.CurrentTime);
+            UIKit.Plugin.AddTimer((float)LeaveSeconds + 0.05f, () =>
             {
                 var p = Utilities.GetPlayerFromSlot(slot);
-                if (p is not null && p.IsValid && Stacks.TryGetValue(slot, out var st)) Render(p, st);
+                if (p is null || !p.IsValid) return;
+                Tick();   // collect the card that just left
+                Add(p, title, message, style, left, link);
             });
             return;
         }
 
-        panel.SetVariant(player, "toasts", "pos-", PositionClass(Position));
-        if (stack.Count >= Slots)
-        {
-            // Full: the oldest (top) makes room at once and the rest glide up; the new card joins at the bottom a moment
-            // later, so it slides in like any other instead of appearing in a slot that is already on.
-            stack.RemoveAt(0);
-            Render(player, stack, liftFrom: 0);
-            var slot = player.Slot;
-            UIKit.Plugin.AddTimer((float)LeaveSeconds, () =>
-            {
-                var p = Utilities.GetPlayerFromSlot(slot);
-                if (p is null || !p.IsValid || !Stacks.TryGetValue(slot, out var st) || st.Count >= Slots) return;
-                st.Add(card);
-                RenderSlot(p, st.Count - 1, card);
-            });
-            return;
-        }
+        Add(player, title, message, style, (float)(until - Server.CurrentTime), link);
+    }
+
+    private static void Add(CCSPlayerController player, string title, string? message, ToastStyle style, float seconds, string? link)
+    {
+        var panel = _panel!;
+        if (!Stacks.TryGetValue(player.Slot, out var stack)) Stacks[player.Slot] = stack = new List<Card>();
+        var free = FreePanel(stack);
+        if (free < 0) return;
+
+        var card = new Card { Panel = free, Row = stack.Count, Until = Server.CurrentTime + seconds };
         stack.Add(card);
-        RenderSlot(player, stack.Count - 1, card);
+
+        var id = $"t{free}";
+        panel.SetText(player, id + "_title", title);
+        panel.SetText(player, id + "_msg", message ?? string.Empty);
+        panel.SetText(player, id + "_link", link ?? string.Empty);
+        panel.SetClass(player, id, "has-msg", !string.IsNullOrEmpty(message));
+        panel.SetClass(player, id, "has-link", !string.IsNullOrEmpty(link));
+        panel.SetVariant(player, id, "style-", style.ToString().ToLowerInvariant());
+        panel.SetClass(player, id, "leaving", false);
+        panel.SetClass(player, id, "on", false);
+        panel.SetVariant(player, id, "row-", card.Row.ToString());
+
+        var rows = RowsOf(player.Slot);
+        var delay = rows[free] == card.Row ? EnterDelay : MovedEnterDelay;
+        rows[free] = card.Row;
+
+        var owner = player.Slot;
+        UIKit.Plugin.AddTimer(delay, () =>
+        {
+            var p = Utilities.GetPlayerFromSlot(owner);
+            if (p is null || !p.IsValid || _panel is null || !Stacks.TryGetValue(owner, out var st) || !st.Contains(card)) return;
+            _panel.SetClass(p, $"t{card.Panel}", "on", true);
+        });
     }
 
     /// <summary>Show the same toast to every human on the server.</summary>
@@ -147,12 +173,11 @@ public static class Toasts
             Show(player, title, message, style, seconds, link);
     }
 
-    /// <summary>Remove every toast of a player at once.</summary>
+    /// <summary>Slide every toast of a player out at once.</summary>
     public static void Clear(CCSPlayerController player)
     {
-        if (!Stacks.Remove(player.Slot) || _panel is null) return;
-        Render(player, new List<Card>());
-        _panel.Hide(player);
+        if (!Stacks.TryGetValue(player.Slot, out var stack)) return;
+        foreach (var card in stack.Where(c => !c.Leaving).ToList()) StartLeaving(player, card);
     }
 
     private static Panel EnsurePanel()
@@ -161,6 +186,26 @@ public static class Toasts
         _panel = new Panel(Layout, new PanelOptions { Root = "toasts", CaptureInput = false });
         _timer = UIKit.Plugin.AddTimer(0.1f, Tick, TimerFlags.REPEAT);
         return _panel;
+    }
+
+    private static int[] RowsOf(int slot)
+    {
+        if (!PanelRows.TryGetValue(slot, out var rows)) PanelRows[slot] = rows = new[] { 0, 0, 0, 0 };   // an unused panel rests where row 0 is
+        return rows;
+    }
+
+    private static int FreePanel(List<Card> stack)
+    {
+        for (var i = 0; i < Slots; i++)
+            if (stack.All(c => c.Panel != i)) return i;
+        return -1;
+    }
+
+    private static void StartLeaving(CCSPlayerController player, Card card)
+    {
+        card.Leaving = true;
+        card.Until = Server.CurrentTime + LeaveSeconds;
+        _panel?.SetClass(player, $"t{card.Panel}", "leaving", true);
     }
 
     private static void PlaySound(CCSPlayerController player, ToastStyle style)
@@ -174,56 +219,8 @@ public static class Toasts
     }
 
     /// <summary>
-    /// Fill every slot from the stack (slot 0 = oldest, top). With <paramref name="liftFrom"/> the slots from that index
-    /// on are re-filled one card higher than before, so they are pushed down by one card instantly (<c>.lift</c>) and
-    /// released a beat later to glide up into place — the layout itself cannot animate a reflow.
-    /// </summary>
-    private static void Render(CCSPlayerController player, List<Card> stack, int liftFrom = -1)
-    {
-        var panel = _panel!;
-        for (var i = 0; i < Slots; i++)
-        {
-            var id = $"t{i}";
-            if (i >= stack.Count)
-            {
-                panel.SetClass(player, id, "on", false);
-                panel.SetClass(player, id, "leaving", false);
-                panel.SetClass(player, id, "lift", false);
-                continue;
-            }
-            var lift = liftFrom >= 0 && i >= liftFrom;
-            panel.SetClass(player, id, "lift", lift);
-            RenderSlot(player, i, stack[i]);
-        }
-
-        if (liftFrom < 0) return;
-        var slot = player.Slot;
-        // Released in a clearly later network update: in the same one the client never sees the pushed-down state.
-        UIKit.Plugin.AddTimer(0.12f, () =>
-        {
-            var p = Utilities.GetPlayerFromSlot(slot);
-            if (p is null || !p.IsValid || _panel is null) return;
-            for (var i = 0; i < Slots; i++) _panel.SetClass(p, $"t{i}", "lift", false);
-        });
-    }
-
-    private static void RenderSlot(CCSPlayerController player, int index, Card card)
-    {
-        var panel = _panel!;
-        var id = $"t{index}";
-        panel.SetText(player, id + "_title", card.Title);
-        panel.SetText(player, id + "_msg", card.Message);
-        panel.SetText(player, id + "_link", card.Link);
-        panel.SetClass(player, id, "has-msg", card.Message.Length > 0);
-        panel.SetClass(player, id, "has-link", card.Link.Length > 0);
-        panel.SetVariant(player, id, "style-", card.Style.ToString().ToLowerInvariant());
-        panel.SetClass(player, id, "leaving", card.Leaving);
-        panel.SetClass(player, id, "on", true);
-    }
-
-    /// <summary>
-    /// Two steps per card: when its time is up it gets <c>leaving</c> and slides out while still holding its place;
-    /// <see cref="LeaveSeconds"/> later it is taken out of the stack and the rest move up.
+    /// Two steps per card. When its time is up it gets <c>leaving</c> and slides out of its row. Once the slide-out is
+    /// over the card is dropped, its panel is freed, and every card after it moves up a row — a transform tween.
     /// </summary>
     private static void Tick()
     {
@@ -238,21 +235,24 @@ public static class Toasts
                 continue;
             }
 
-            for (var i = 0; i < stack.Count; i++)
-            {
-                var card = stack[i];
-                if (card.Leaving || card.Until > now) continue;
-                card.Leaving = true;
-                card.Until = now + LeaveSeconds;
-                _panel.SetClass(player, $"t{i}", "leaving", true);
-            }
+            foreach (var card in stack.Where(c => !c.Leaving && c.Until <= now).ToList())
+                StartLeaving(player, card);
 
-            var first = stack.FindIndex(c => c.Leaving && c.Until <= now);
-            if (first < 0) continue;
-            stack.RemoveAll(c => c.Leaving && c.Until <= now);
-            // Cards that were below the removed one move up a slot and glide into place. The stack itself stays
-            // shown even when empty: hiding it would make the next first toast pop in again.
-            Render(player, stack, liftFrom: first);
+            if (stack.RemoveAll(c => c.Leaving && c.Until <= now) == 0) continue;
+            for (var i = 0; i < Slots; i++)
+            {
+                if (stack.Any(c => c.Panel == i)) continue;
+                // A freed panel: off, ready for the next card.
+                _panel.SetClass(player, $"t{i}", "on", false);
+                _panel.SetClass(player, $"t{i}", "leaving", false);
+            }
+            for (var row = 0; row < stack.Count; row++)
+            {
+                if (stack[row].Row == row) continue;
+                stack[row].Row = row;
+                RowsOf(slot)[stack[row].Panel] = row;
+                _panel.SetVariant(player, $"t{stack[row].Panel}", "row-", row.ToString());
+            }
         }
     }
 
@@ -266,10 +266,18 @@ public static class Toasts
 
     // ── called by UIKit ──────────────────────────────────────────────────────────────────────────
 
-    internal static void Forget(int slot) => Stacks.Remove(slot);
+    internal static void Forget(int slot)
+    {
+        Stacks.Remove(slot);
+        PanelRows.Remove(slot);
+    }
 
     /// <summary>Map change: the entity is gone and so is every card on screen.</summary>
-    internal static void Reset() => Stacks.Clear();
+    internal static void Reset()
+    {
+        Stacks.Clear();
+        PanelRows.Clear();
+    }
 
     internal static void Stop()
     {
