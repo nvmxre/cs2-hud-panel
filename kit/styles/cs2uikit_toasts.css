@@ -1,9 +1,12 @@
 /*
-  CS2UIKit toasts — modelled on CS2's own main-menu notices: a dark card with the map-line texture, a coloured
-  icon square, an accent bar in the same colour, a bold title, a message and an optional link.
+  CS2UIKit toasts: a dark rounded card, a soft wash of the style colour from the left, a round icon in a dim halo,
+  a bold title and a grey message. No shadow, no border.
 
-  Panorama, not the web: flow-children instead of flex, visibility: collapse to hide, and transitions only on
-  opacity/transform triggered by a class (keyframes on transform do not run in custom_hud_layout).
+  Panorama, not the web: flow-children instead of flex, visibility: collapse to hide, gradients in the 2008 WebKit
+  form, and transitions only on opacity/transform triggered by a class (keyframes on transform do not run in
+  custom_hud_layout). Enter and leave are both transitions:
+    .on       — the card takes its place and fades/slides in;
+    .leaving  — it fades/slides out while still holding its place; the plugin removes .on right after.
 */
 
 .cs2uikit-screen
@@ -67,36 +70,48 @@
 {
 	visibility: collapse;
 	opacity: 0;
-	transform: translateX( 24px );
-	transition: opacity 0.25s ease-out 0s, transform 0.25s ease-out 0s;
+	transform: translatex( 28px );
+	transition: opacity 0.28s ease-out 0s, transform 0.28s ease-out 0s;
 
-	width: 470px;
-	margin-bottom: 8px;
-	margin-top: 0px;
+	width: 460px;
+	margin-bottom: 10px;
 	flow-children: right;
-
-	background-color: #2a2a2aef;
-	/* CS2's own contour-line texture: white lines on transparency, laid over the grey at low strength. */
-	background-image: url( "s2r://panorama/images/backgrounds/linemap_png.vtex" );
-	background-size: 470px auto;
-	background-img-opacity: 0.22;
-	box-shadow: #00000080 0px 2px 10px 0px;
+	border-radius: 8px;
+	background-color: #25292fee;
 }
 
 .toast.on
 {
 	visibility: visible;
 	opacity: 1;
-	transform: translateX( 0px );
+	transform: translatex( 0px );
 }
 
-.toast-icon
+.toast.on.leaving
 {
-	width: 60px;
-	height: 60px;
-	margin: 14px 12px 14px 14px;
-	vertical-align: top;
-	background-color: #4b7bd6;
+	opacity: 0;
+	transform: translatex( 28px );
+}
+
+/* Round icon: a dim halo with the coloured dot inside, the glyph washed dark on the dot. */
+.toast-halo
+{
+	width: 46px;
+	height: 46px;
+	margin: 16px 14px 16px 16px;
+	vertical-align: center;
+	border-radius: 50%;
+	background-color: #ffffff12;
+}
+
+.toast-dot
+{
+	width: 30px;
+	height: 30px;
+	horizontal-align: center;
+	vertical-align: center;
+	border-radius: 50%;
+	background-color: #3f8cff;
 }
 
 .toast-glyph
@@ -105,29 +120,21 @@
 	height: 100%;
 	background-size: 100% 100%;
 	background-image: url( "s2r://panorama/styles/custom_game/cs2uikit/icon_info.vtex" );
-}
-
-.toast-bar
-{
-	width: 4px;
-	height: 60px;
-	margin: 14px 14px 14px 0px;
-	vertical-align: top;
-	background-color: #4b7bd6;
+	wash-color: #16191d;
 }
 
 .toast-body
 {
 	flow-children: down;
 	width: fill-parent-flow( 1.0 );
-	margin: 12px 16px 12px 0px;
+	margin: 14px 18px 14px 0px;
 	vertical-align: center;
 }
 
 .toast-title
 {
-	color: #ffffff;
-	font-size: 22px;
+	color: #f1f3f5;
+	font-size: 21px;
 	font-weight: bold;
 	text-overflow: ellipsis;
 	white-space: nowrap;
@@ -137,9 +144,9 @@
 .toast-msg
 {
 	visibility: collapse;
-	color: #d6d6d6;
+	color: #aab0b8;
 	font-size: 17px;
-	margin-top: 3px;
+	margin-top: 2px;
 	width: 100%;
 }
 
@@ -165,12 +172,21 @@
 	visibility: visible;
 }
 
-/* ── styles: the icon and the bar share the accent colour ─────────────────────────────────────── */
+/* ── styles: a wash of the colour from the left, and the dot ──────────────────────────────────── */
 
-.toast.style-success .toast-icon,
-.toast.style-success .toast-bar
+.toast.style-info
 {
-	background-color: #47a652;
+	background-color: gradient( linear, 0% 0%, 100% 0%, from( #1f2d44ee ), color-stop( 0.45, #25292fee ), to( #25292fee ) );
+}
+
+.toast.style-success
+{
+	background-color: gradient( linear, 0% 0%, 100% 0%, from( #1d3b31ee ), color-stop( 0.45, #25292fee ), to( #25292fee ) );
+}
+
+.toast.style-success .toast-dot
+{
+	background-color: #2fd67a;
 }
 
 .toast.style-success .toast-glyph
@@ -178,23 +194,29 @@
 	background-image: url( "s2r://panorama/styles/custom_game/cs2uikit/icon_success.vtex" );
 }
 
-/* The yellow of CS2's cooldown notice. Light background, so the glyph is washed dark. */
-.toast.style-warning .toast-icon,
-.toast.style-warning .toast-bar
+.toast.style-warning
 {
-	background-color: #e8c83a;
+	background-color: gradient( linear, 0% 0%, 100% 0%, from( #3a3622ee ), color-stop( 0.45, #25292fee ), to( #25292fee ) );
+}
+
+.toast.style-warning .toast-dot
+{
+	background-color: #f5c518;
 }
 
 .toast.style-warning .toast-glyph
 {
 	background-image: url( "s2r://panorama/styles/custom_game/cs2uikit/icon_warning.vtex" );
-	wash-color: #2b2408;
 }
 
-.toast.style-danger .toast-icon,
-.toast.style-danger .toast-bar
+.toast.style-danger
 {
-	background-color: #cf4444;
+	background-color: gradient( linear, 0% 0%, 100% 0%, from( #3d272cee ), color-stop( 0.45, #25292fee ), to( #25292fee ) );
+}
+
+.toast.style-danger .toast-dot
+{
+	background-color: #f0444f;
 }
 
 .toast.style-danger .toast-glyph
@@ -202,10 +224,9 @@
 	background-image: url( "s2r://panorama/styles/custom_game/cs2uikit/icon_danger.vtex" );
 }
 
-.toast.style-neutral .toast-icon,
-.toast.style-neutral .toast-bar
+.toast.style-neutral .toast-dot
 {
-	background-color: #6e6e6e;
+	background-color: #9aa0a6;
 }
 
 .toast.style-neutral .toast-glyph

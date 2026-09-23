@@ -16,6 +16,17 @@ public sealed class ShowcasePlugin : BasePlugin
 
     public override void Unload(bool hotReload) => UIKit.Shutdown();
 
+    /// <summary>css_toastsound [event|off] — try another sound for toasts, e.g. UIPanorama.submenu_leveloptions_slidein.</summary>
+    [ConsoleCommand("css_toastsound", "Toast sound: css_toastsound <sound event>|off")]
+    public void OnToastSound(CCSPlayerController? player, CommandInfo command)
+    {
+        var arg = command.ArgCount > 1 ? command.GetArg(1) : "";
+        Toasts.Sound = arg is "" or "off" ? null : arg;
+        command.ReplyToCommand($"Toast sound: {Toasts.Sound ?? "off"}");
+        if (player is not null && player.IsValid)
+            Toasts.Show(player, "Sound check", Toasts.Sound ?? "silent", ToastStyle.Neutral);
+    }
+
     /// <summary>css_toast [info|success|warning|danger|neutral|all] — one toast, or one of each.</summary>
     [ConsoleCommand("css_toast", "Show a toast: css_toast [info|success|warning|danger|neutral|all]")]
     public void OnToast(CCSPlayerController? player, CommandInfo command)
