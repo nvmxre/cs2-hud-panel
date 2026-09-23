@@ -87,8 +87,8 @@ public sealed record VoteTexts(
 
 /// <summary>
 /// Votes on a card of their own: a question, two to five options with live counts and bars, a countdown, and the
-/// result at the end. Players answer with <c>!1…!5</c> in chat (<c>/1</c> votes without a chat line). Nothing takes the
-/// cursor, so voting never interrupts aiming.
+/// result at the end. Players answer with <c>!1…!5</c> (or <c>/1…/5</c>) in chat; the line is counted and never shows in
+/// chat. Nothing takes the cursor, so voting never interrupts aiming.
 ///
 /// Why not F1/F2 like the stock vote: CS2 sends <c>vote option1…5</c> only while its own vote panel is up, and that
 /// panel cannot be hidden — it draws under the card. Without it the keys send nothing (checked 2026-09-24: neither
@@ -253,7 +253,10 @@ public static class Votes
         _tick = UIKit.Plugin.AddTimer(0.25f, Tick, TimerFlags.REPEAT);
         if (!_commands)
         {
-            // !1…!5 in chat arrive through CounterStrikeSharp's chat triggers as css_1 … css_5; a bound key works too.
+            // !1…!5 are taken from the chat line itself and never reach the chat (the chat stays for people, not for
+            // votes). css_1 … css_5 stay for keys a player binds: `bind f1 css_1`.
+            UIKit.Plugin.AddCommandListener("say", OnSay, HookMode.Pre);
+            UIKit.Plugin.AddCommandListener("say_team", OnSay, HookMode.Pre);
             for (var i = 1; i <= MaxOptions; i++)
             {
                 var index = i - 1;
@@ -264,6 +267,21 @@ public static class Votes
             _commands = true;
         }
         return _panel;
+    }
+
+    /// <summary>
+    /// «!3» or «/3» while a vote runs: counted, and swallowed so the line does not show in chat. Anything else — and
+    /// every line when no vote runs — goes on as usual.
+    /// </summary>
+    private static HookResult OnSay(CCSPlayerController? player, CommandInfo info)
+    {
+        if (player is null || !Active) return HookResult.Continue;
+        var text = info.ArgString.Trim().Trim('"').Trim();
+        if (text.Length != 2 || (text[0] != '!' && text[0] != '/') || !char.IsDigit(text[1])) return HookResult.Continue;
+        var index = text[1] - '1';
+        if (index < 0 || index >= _optionCount) return HookResult.Continue;
+        Vote(player, index);
+        return HookResult.Handled;
     }
 
     private static IReadOnlyList<string> OptionsOf(CCSPlayerController player, VoteTexts texts)
@@ -432,6 +450,8 @@ public static class Votes
         _tick = null;
         if (_commands && UIKit.Initialized)
         {
+            UIKit.Plugin.RemoveCommandListener("say", OnSay, HookMode.Pre);
+            UIKit.Plugin.RemoveCommandListener("say_team", OnSay, HookMode.Pre);
             foreach (var (name, handler) in ChatCommands) UIKit.Plugin.RemoveCommand(name, handler);
             ChatCommands.Clear();
             _commands = false;
