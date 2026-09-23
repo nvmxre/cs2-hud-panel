@@ -16,7 +16,7 @@ public sealed class VoteRequest
     public Func<CCSPlayerController, string>? QuestionFor { get; init; }
 
     /// <summary>
-    /// Two to five options, answered with F1…F5 or !1…!5. Null — a yes/no vote with <see cref="VoteTexts.Yes"/>
+    /// Two to five options, answered with !1…!5 in chat. Null — a yes/no vote with <see cref="VoteTexts.Yes"/>
     /// and <see cref="VoteTexts.No"/>: the first option is "yes", the second "no".
     /// </summary>
     public IReadOnlyList<string>? Options { get; init; }
@@ -80,15 +80,20 @@ public sealed record VoteTexts(
     string Yes = "Yes",
     string No = "No",
     string Seconds = "{0} s",
-    string Hint = "F1–F{0} or !1–!{0} in chat",
+    string Hint = "Vote in chat: !1–!{0}",
     string Passed = "Passed",
     string Failed = "Failed",
     string NoWinner = "No decision");
 
 /// <summary>
 /// Votes on a card of their own: a question, two to five options with live counts and bars, a countdown, and the
-/// result at the end. Players answer with F1…F5 — CS2 sends those to the server as <c>vote option1…5</c> — or with
-/// <c>!1…!5</c> in chat. Nothing takes the cursor, so voting never interrupts aiming.
+/// result at the end. Players answer with <c>!1…!5</c> in chat (<c>/1</c> votes without a chat line). Nothing takes the
+/// cursor, so voting never interrupts aiming.
+///
+/// Why not F1/F2 like the stock vote: CS2 sends <c>vote option1…5</c> only while its own vote panel is up, and that
+/// panel cannot be hidden — it draws under the card. Without it the keys send nothing (checked 2026-09-24: neither
+/// the networked <c>vote_controller</c> state nor digits help; digits and F switch weapons client-side). A player who
+/// wants keys can bind them: <c>bind f1 css_1</c>.
 ///
 /// <code>
 /// Votes.Start(new VoteRequest { Question = "Change the map to de_inferno?" }, result =>
@@ -196,7 +201,7 @@ public static class Votes
                 panel.SetClass(player, $"vote_opt_{i}", "mine", false);
                 panel.SetClass(player, $"vote_opt_{i}", "winner", false);
                 if (!used) continue;
-                panel.SetText(player, $"vote_key_{i}", $"F{i + 1}");
+                panel.SetText(player, $"vote_key_{i}", $"!{i + 1}");
                 panel.SetText(player, $"vote_label_{i}", i < options.Count ? options[i] : $"#{i + 1}");
             }
             PlaySound(player, SoundStart);
@@ -248,9 +253,7 @@ public static class Votes
         _tick = UIKit.Plugin.AddTimer(0.25f, Tick, TimerFlags.REPEAT);
         if (!_commands)
         {
-            // F1…F5 arrive as the console command `vote option1…5`; chat gets !1…!5 through CounterStrikeSharp's
-            // chat triggers (css_1 … css_5).
-            UIKit.Plugin.AddCommandListener("vote", OnVoteCommand, HookMode.Pre);
+            // !1…!5 in chat arrive through CounterStrikeSharp's chat triggers as css_1 … css_5; a bound key works too.
             for (var i = 1; i <= MaxOptions; i++)
             {
                 var index = i - 1;
@@ -261,16 +264,6 @@ public static class Votes
             _commands = true;
         }
         return _panel;
-    }
-
-    private static HookResult OnVoteCommand(CCSPlayerController? player, CommandInfo info)
-    {
-        if (player is null || !Active) return HookResult.Continue;
-        var arg = info.ArgCount > 1 ? info.GetArg(1) : string.Empty;
-        if (!arg.StartsWith("option", StringComparison.OrdinalIgnoreCase)) return HookResult.Continue;
-        if (!int.TryParse(arg.AsSpan(6), out var n)) return HookResult.Continue;
-        // Ours only while our vote runs; the stock vote system does not see it and cannot double-count.
-        return Vote(player, n - 1) ? HookResult.Handled : HookResult.Continue;
     }
 
     private static IReadOnlyList<string> OptionsOf(CCSPlayerController player, VoteTexts texts)
@@ -439,7 +432,6 @@ public static class Votes
         _tick = null;
         if (_commands && UIKit.Initialized)
         {
-            UIKit.Plugin.RemoveCommandListener("vote", OnVoteCommand, HookMode.Pre);
             foreach (var (name, handler) in ChatCommands) UIKit.Plugin.RemoveCommand(name, handler);
             ChatCommands.Clear();
             _commands = false;

@@ -4,7 +4,7 @@
   Rules of this file (see docs/GOTCHAS.md):
   - the root panel has no id (the resource compiler rejects it); the plugin toggles `votes` inside it;
   - only Panel, Label, Image and Button are allowed in custom_hud_layout, and no inline style="";
-  - nothing here takes the mouse: votes are cast with F1…F5 and !1…!5, the cursor stays in the game.
+  - nothing here takes the mouse: votes are cast with !1…!5 in chat, the cursor stays in the game.
 -->
 <root>
 	<styles>

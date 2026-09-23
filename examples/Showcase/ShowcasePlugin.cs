@@ -42,8 +42,11 @@ public sealed class ShowcasePlugin : BasePlugin
         ("New unit invite", "Last Hope wants you in. Open the menu to answer.", ToastStyle.Neutral, "https://project-z0.ru/factions"),
     };
 
-    /// <summary>css_vote [2|3|4|5] — a yes/no vote by default, or a map vote with that many options.</summary>
-    [ConsoleCommand("css_vote", "Start a vote: css_vote [2|3|4|5]")]
+    /// <summary>
+    /// css_uivote [3|4|5] — a yes/no vote by default, or a map vote with that many options; answer with !1…!5.
+    /// Not css_vote: plugins commonly own that name (PROJECT ZERO does), and both would run at once.
+    /// </summary>
+    [ConsoleCommand("css_uivote", "Start a vote: css_uivote [2|3|4|5]")]
     public void OnVote(CCSPlayerController? player, CommandInfo command)
     {
         var arg = command.ArgCount > 1 ? command.GetArg(1) : "";
