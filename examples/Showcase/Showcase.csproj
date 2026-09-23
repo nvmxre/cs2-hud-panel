@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Every ready-made CS2UIKit window in one plugin: css_toast, and later css_menu, css_vote, css_confirm. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+    <AssemblyName>CS2UIKit.Showcase</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="CounterStrikeSharp.API" Version="1.0.374">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+    <!-- CS2UIKit.dll must sit next to the plugin: each plugin loads in its own context. -->
+    <ProjectReference Include="..\..\src\CS2UIKit\CS2UIKit.csproj" />
+  </ItemGroup>
+</Project>

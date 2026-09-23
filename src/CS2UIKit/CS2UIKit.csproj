@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    CS2UIKit — Panorama UI for CounterStrikeSharp plugins: ready-made menus, toasts, votes and prompts in the
+    CS2 style, plus your own layouts, all on the custom_hud_layout entity. MIT.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>CS2UIKit</RootNamespace>
+    <AssemblyName>CS2UIKit</AssemblyName>
+    <Version>2.0.0-preview.1</Version>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+
+    <PackageId>CS2UIKit</PackageId>
+    <Authors>nvmxre</Authors>
+    <Description>Panorama UI for CounterStrikeSharp: ready-made menus, toasts, votes and prompts in the CS2 style, clickable with the mouse, opened with the stock B key if you like. Built on custom_hud_layout.</Description>
+    <PackageTags>cs2;counterstrikesharp;panorama;menu;hud;ui</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/nvmxre/cs2-ui-kit</RepositoryUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CounterStrikeSharp.API" Version="1.0.374">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+</Project>

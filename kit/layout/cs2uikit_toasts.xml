@@ -1,0 +1,61 @@
+<!--
+  CS2UIKit toasts: four notification cards stacked per player, driven by CS2UIKit.Toasts.
+
+  Rules of this file (see docs/GOTCHAS.md):
+  - the root panel has no id (the resource compiler rejects it); the plugin toggles `toasts` inside it;
+  - only Panel, Label, Image and Button are allowed in custom_hud_layout;
+  - nothing here takes the mouse: hittest="false" everywhere, the panel never captures input.
+-->
+<root>
+	<styles>
+		<include src="s2r://panorama/styles/custom_game/cs2uikit_toasts.vcss_c" />
+	</styles>
+
+	<Panel class="cs2uikit-screen" hittest="false">
+		<Panel id="toasts" class="toasts" hittest="false">
+			<Panel class="toast-stack" hittest="false">
+
+				<Panel id="t0" class="toast" hittest="false">
+					<Panel class="toast-icon" hittest="false"><Panel class="toast-glyph" hittest="false" /></Panel>
+					<Panel class="toast-bar" hittest="false" />
+					<Panel class="toast-body" hittest="false">
+						<Label id="t0_title" class="toast-title" text="{s:text}" />
+						<Label id="t0_msg" class="toast-msg" text="{s:text}" />
+						<Label id="t0_link" class="toast-link" text="{s:text}" />
+					</Panel>
+				</Panel>
+
+				<Panel id="t1" class="toast" hittest="false">
+					<Panel class="toast-icon" hittest="false"><Panel class="toast-glyph" hittest="false" /></Panel>
+					<Panel class="toast-bar" hittest="false" />
+					<Panel class="toast-body" hittest="false">
+						<Label id="t1_title" class="toast-title" text="{s:text}" />
+						<Label id="t1_msg" class="toast-msg" text="{s:text}" />
+						<Label id="t1_link" class="toast-link" text="{s:text}" />
+					</Panel>
+				</Panel>
+
+				<Panel id="t2" class="toast" hittest="false">
+					<Panel class="toast-icon" hittest="false"><Panel class="toast-glyph" hittest="false" /></Panel>
+					<Panel class="toast-bar" hittest="false" />
+					<Panel class="toast-body" hittest="false">
+						<Label id="t2_title" class="toast-title" text="{s:text}" />
+						<Label id="t2_msg" class="toast-msg" text="{s:text}" />
+						<Label id="t2_link" class="toast-link" text="{s:text}" />
+					</Panel>
+				</Panel>
+
+				<Panel id="t3" class="toast" hittest="false">
+					<Panel class="toast-icon" hittest="false"><Panel class="toast-glyph" hittest="false" /></Panel>
+					<Panel class="toast-bar" hittest="false" />
+					<Panel class="toast-body" hittest="false">
+						<Label id="t3_title" class="toast-title" text="{s:text}" />
+						<Label id="t3_msg" class="toast-msg" text="{s:text}" />
+						<Label id="t3_link" class="toast-link" text="{s:text}" />
+					</Panel>
+				</Panel>
+
+			</Panel>
+		</Panel>
+	</Panel>
+</root>

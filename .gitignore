@@ -11,3 +11,7 @@ obj/
 .vs/
 .idea/
 *.user
+examples/*/bin/
+examples/*/obj/
+src/*/bin/
+src/*/obj/

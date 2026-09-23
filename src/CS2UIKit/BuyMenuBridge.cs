@@ -2,10 +2,10 @@ using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Commands;
 
-namespace HudPanels;
+namespace CS2UIKit;
 
 /// <summary>
-/// Opens a <see cref="HudPanel"/> with the stock **B** key — no binds, no chat command.
+/// Opens a <see cref="Panel"/> with the stock **B** key — no binds, no chat command.
 ///
 /// How it works. A server cannot see the B key and cannot rebind it. But while the stock buy menu is
 /// open, the client itself puts the class `HUD_BUYMENU_VISIBLE` on the HUD root, and your layout lives
@@ -49,7 +49,7 @@ public sealed class BuyMenuBridge
 {
     private static readonly string[] BuyCommands = { "buy", "autobuy", "rebuy" };
 
-    private readonly HudPanel _panel;
+    private readonly Panel _panel;
     private readonly string _windowId;
     private readonly string? _dimId;
     private readonly string _markerClass;
@@ -86,7 +86,7 @@ public sealed class BuyMenuBridge
     /// <param name="dimPanelId">Optional backdrop panel that gets the same marker class.</param>
     /// <param name="markerClass">The class that means "this player may have the panel". Default `native`.</param>
     /// <param name="log">Optional sink for diagnostics.</param>
-    public BuyMenuBridge(HudPanel panel, string windowPanelId, string? dimPanelId = null,
+    public BuyMenuBridge(Panel panel, string windowPanelId, string? dimPanelId = null,
         string markerClass = "native", Action<string>? log = null)
     {
         _panel = panel;
@@ -151,7 +151,8 @@ public sealed class BuyMenuBridge
 
         if (allow)
         {
-            if (!_panel.EnsureSpawned(player)) return;
+            UIKit.EnsureWorld(player);
+            if (_panel.Entity is null) return;
             if (!_allowed.Add(player.Slot)) return;
             Mark(player, true);
             Prepare?.Invoke(player);
@@ -209,8 +210,8 @@ public sealed class BuyMenuBridge
     private HookResult OnStockMenu(CCSPlayerController? player, bool open)
     {
         if (player is null || !player.IsValid || player.IsBot) return HookResult.Continue;
-        // Opened by HudPanel.Show — that capture belongs to the panel, not to us.
-        if (_panel.IsVisible(player.Slot)) return HookResult.Continue;
+        // Opened by Panel.Show — that capture belongs to the panel, not to us.
+        if (_panel.IsOpen(player)) return HookResult.Continue;
         if (open && !_allowed.Contains(player.Slot)) return HookResult.Continue;
         if (open == _captured.Contains(player.Slot)) return HookResult.Continue;
 
@@ -242,7 +243,7 @@ public sealed class BuyMenuBridge
         {
             _captured.Remove(slot);
             var player = Utilities.GetPlayerFromSlot(slot);
-            if (player is null || !player.IsValid || _panel.IsVisible(slot)) continue;
+            if (player is null || !player.IsValid || _panel.OpenSlots.Contains(slot)) continue;
             _panel.CaptureInput(player, false);
         }
         return HookResult.Continue;

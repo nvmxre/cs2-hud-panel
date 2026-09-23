@@ -1,0 +1,214 @@
+/*
+  CS2UIKit toasts — modelled on CS2's own main-menu notices: a dark card with the map-line texture, a coloured
+  icon square, an accent bar in the same colour, a bold title, a message and an optional link.
+
+  Panorama, not the web: flow-children instead of flex, visibility: collapse to hide, and transitions only on
+  opacity/transform triggered by a class (keyframes on transform do not run in custom_hud_layout).
+*/
+
+.cs2uikit-screen
+{
+	width: 100%;
+	height: 100%;
+}
+
+.toasts
+{
+	visibility: collapse;
+	width: 100%;
+	height: 100%;
+}
+
+.toasts.shown
+{
+	visibility: visible;
+}
+
+/* ── where the stack sits ─────────────────────────────────────────────────────────────────────── */
+
+.toast-stack
+{
+	flow-children: down;
+	horizontal-align: right;
+	vertical-align: top;
+	margin-top: 150px;
+	margin-right: 24px;
+}
+
+.toasts.pos-top-left .toast-stack
+{
+	horizontal-align: left;
+	margin-right: 0px;
+	margin-left: 24px;
+}
+
+.toasts.pos-bottom-right .toast-stack
+{
+	flow-children: up;
+	vertical-align: bottom;
+	margin-top: 0px;
+	margin-bottom: 190px;
+}
+
+.toasts.pos-bottom-left .toast-stack
+{
+	flow-children: up;
+	horizontal-align: left;
+	vertical-align: bottom;
+	margin-top: 0px;
+	margin-right: 0px;
+	margin-left: 24px;
+	margin-bottom: 190px;
+}
+
+/* ── the card ─────────────────────────────────────────────────────────────────────────────────── */
+
+.toast
+{
+	visibility: collapse;
+	opacity: 0;
+	transform: translateX( 24px );
+	transition: opacity 0.25s ease-out 0s, transform 0.25s ease-out 0s;
+
+	width: 470px;
+	margin-bottom: 8px;
+	margin-top: 0px;
+	flow-children: right;
+
+	background-color: #2a2a2aef;
+	/* CS2's own contour-line texture: white lines on transparency, laid over the grey at low strength. */
+	background-image: url( "s2r://panorama/images/backgrounds/linemap_png.vtex" );
+	background-size: 470px auto;
+	background-img-opacity: 0.22;
+	box-shadow: #00000080 0px 2px 10px 0px;
+}
+
+.toast.on
+{
+	visibility: visible;
+	opacity: 1;
+	transform: translateX( 0px );
+}
+
+.toast-icon
+{
+	width: 60px;
+	height: 60px;
+	margin: 14px 12px 14px 14px;
+	vertical-align: top;
+	background-color: #4b7bd6;
+}
+
+.toast-glyph
+{
+	width: 100%;
+	height: 100%;
+	background-size: 100% 100%;
+	background-image: url( "s2r://panorama/styles/custom_game/cs2uikit/icon_info.vtex" );
+}
+
+.toast-bar
+{
+	width: 4px;
+	height: 60px;
+	margin: 14px 14px 14px 0px;
+	vertical-align: top;
+	background-color: #4b7bd6;
+}
+
+.toast-body
+{
+	flow-children: down;
+	width: fill-parent-flow( 1.0 );
+	margin: 12px 16px 12px 0px;
+	vertical-align: center;
+}
+
+.toast-title
+{
+	color: #ffffff;
+	font-size: 22px;
+	font-weight: bold;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	width: 100%;
+}
+
+.toast-msg
+{
+	visibility: collapse;
+	color: #d6d6d6;
+	font-size: 17px;
+	margin-top: 3px;
+	width: 100%;
+}
+
+.toast.has-msg .toast-msg
+{
+	visibility: visible;
+}
+
+.toast-link
+{
+	visibility: collapse;
+	color: #6cb6ff;
+	font-size: 16px;
+	margin-top: 4px;
+	text-decoration: underline;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	width: 100%;
+}
+
+.toast.has-link .toast-link
+{
+	visibility: visible;
+}
+
+/* ── styles: the icon and the bar share the accent colour ─────────────────────────────────────── */
+
+.toast.style-success .toast-icon,
+.toast.style-success .toast-bar
+{
+	background-color: #47a652;
+}
+
+.toast.style-success .toast-glyph
+{
+	background-image: url( "s2r://panorama/styles/custom_game/cs2uikit/icon_success.vtex" );
+}
+
+/* The yellow of CS2's cooldown notice. Light background, so the glyph is washed dark. */
+.toast.style-warning .toast-icon,
+.toast.style-warning .toast-bar
+{
+	background-color: #e8c83a;
+}
+
+.toast.style-warning .toast-glyph
+{
+	background-image: url( "s2r://panorama/styles/custom_game/cs2uikit/icon_warning.vtex" );
+	wash-color: #2b2408;
+}
+
+.toast.style-danger .toast-icon,
+.toast.style-danger .toast-bar
+{
+	background-color: #cf4444;
+}
+
+.toast.style-danger .toast-glyph
+{
+	background-image: url( "s2r://panorama/styles/custom_game/cs2uikit/icon_danger.vtex" );
+}
+
+.toast.style-neutral .toast-icon,
+.toast.style-neutral .toast-bar
+{
+	background-color: #6e6e6e;
+}
+
+.toast.style-neutral .toast-glyph
+{
+	background-image: url( "s2r://panorama/styles/custom_game/cs2uikit/icon_neutral.vtex" );
+}
