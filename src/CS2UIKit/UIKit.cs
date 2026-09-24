@@ -84,6 +84,29 @@ public static class UIKit
         WorldReady = false;
     }
 
+    /// <summary>
+    /// Recreate every panel entity. Since CS2 1.41.8.2 the game clears the "is set" flag of a slot's texts when a
+    /// player takes the slot, and CounterStrikeSharp 1.0.374 only updates the value afterwards — the text stays
+    /// empty until the map changes (CounterStrikeSharp PR #1434). A fresh entity has no entries, so every text is
+    /// added anew with the flag up. Call it a moment after a player fully connects; toasts and a running vote card
+    /// are cleared. Remove once CounterStrikeSharp ships the fix.
+    /// </summary>
+    public static void Rebuild()
+    {
+        if (_plugin is null || !WorldReady) return;
+        Toasts.Reset();
+        Votes.Reset();
+        foreach (var panel in Panels)
+        {
+            panel.HideAll();
+            var entity = panel.Entity;
+            if (entity is not null && entity.IsValid) entity.Remove();
+            panel.Detach();
+        }
+        SpawnAll();
+        Log("panels rebuilt");
+    }
+
     internal static void Log(string message) => _log?.Invoke("CS2UIKit: " + message);
 
     internal static void Register(Panel panel)
