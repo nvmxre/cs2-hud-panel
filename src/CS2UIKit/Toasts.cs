@@ -52,11 +52,11 @@ public static class Toasts
     public static ToastPosition Position { get; set; } = ToastPosition.TopRight;
 
     /// <summary>
-    /// Sound event played to the player when a toast appears; null or empty for silence. Stock CS2 UI events work
-    /// without shipping anything: <c>HudChat.Message</c>, <c>UIPanorama.submenu_leveloptions_slidein</c>,
-    /// <c>UI.PlayerPing</c>. <see cref="StyleSounds"/> overrides it per style.
+    /// Sound event played to the player when a toast appears; null or empty for silence. Default: the main menu's
+    /// News tab — short and not tied to anything in a match (lobby or ping sounds are, and mislead players).
+    /// Any stock CS2 UI event works without shipping anything. <see cref="StyleSounds"/> overrides it per style.
     /// </summary>
-    public static string? Sound { get; set; } = "HudChat.Message";
+    public static string? Sound { get; set; } = "UIPanorama.tab_mainmenu_news";
 
     /// <summary>Per-style sound, e.g. a sharper one for <see cref="ToastStyle.Danger"/>.</summary>
     public static Dictionary<ToastStyle, string> StyleSounds { get; } = new();

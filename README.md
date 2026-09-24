@@ -1,190 +1,144 @@
-# HudPanel — clickable HUD panels for CounterStrikeSharp
+# CS2UIKit — Panorama UI for CounterStrikeSharp plugins
 
-Build real, flicker-free, **mouse-clickable** menus in CS2 from a CounterStrikeSharp plugin, using the
-`custom_hud_layout` entity Valve shipped on 24 August 2026 — and open them with the stock **B** key,
-no binds and no chat command.
+Ready-made **toasts** and **votes** in the CS2 style, plus your own clickable panels and the stock **B** key —
+from C#, without writing any Panorama yourself. Built on the `custom_hud_layout` entity Valve shipped on
+24 August 2026.
 
-![Round shop built with HudPanel, opened with the B key](assets/shop.jpg)
+![Toasts and a vote card from CS2UIKit](kit/workshop_preview.jpg)
 
-*A 43-item shop built with this library — eight columns, weapon renders, per-player pricing and lock
-state, a "buy for a teammate" panel. Everything you see is one panel entity driven from a plugin, and
-the stock B key opened it.*
+```csharp
+public override void Load(bool hotReload)   => UIKit.Init(this, hotReload);
+public override void Unload(bool hotReload) => UIKit.Shutdown();
 
-![Infected view: HP bar, ability icons and a veins overlay](assets/infected.jpg)
+Toasts.Show(player, "Airdrop in 10 s", "Aircraft inbound.", ToastStyle.Info);
 
-*The same entity from the other side of the round: an HP bar, ability icons with their keys, veins
-growing over the screen — all of it classes and dialog variables toggled per player.*
+Votes.Start(new VoteRequest { Question = "Next map?", Options = new[] { "Dust II", "Inferno", "Mirage" } },
+    result => { if (result.Winner >= 0) ChangeMap(result.Winner); });
+```
 
----
-
-## Why
-
-Until `custom_hud_layout` a plugin had three ways to put something on screen, and each gave up
-something important:
-
-| | Colours & layout | Stays still | Mouse clicks |
-|---|---|---|---|
-| `PrintToCenter` | no — plain text, font shrinks per line | yes | no |
-| `PrintToCenterHtml` | yes | **no** — the panel re-animates about once a second | no |
-| `ChatMenu` (number keys) | limited | yes | no |
-| **`custom_hud_layout`** | **yes** | **yes** | **yes** |
-
-The `PrintToCenterHtml` flicker does have a known community workaround —
-[CS2FlashingHtmlHudFix](https://github.com/M-archand/CS2FlashingHtmlHudFix), which keeps `GameRestart` set while
-`RestartRoundTime < Server.CurrentTime` (the trick is Poggu's). It holds the panel still, and it is worth knowing
-about if HTML in the centre of the screen is all you need. It does not give you clicks.
-
-The click column is the one that matters. Without it, menus have to run on number keys — and a server
-**cannot** rebind a player's keyboard. CS2 answers `Cannot execute concommand 'bind', missing required
-FCVAR flag`, and the commands the number keys send (`slot1`) never reach the server either. So every
-"menu on number keys" either asks players to set up binds themselves or quietly does not work.
-
-`custom_hud_layout` removes the problem: clicks arrive in your plugin with the id of the button that
-was pressed. And the one key a server *can* make use of is B — the client announces the stock buy menu,
-and your panel can ride on it. See [Opening on B](#opening-on-b).
+> **2.0 preview.** This repository used to be *HudPanel* (1.x, a two-file helper for your own panels). 2.0 is a
+> library with ready-made windows; your own panels and the B key are still here (`Panel`, `BuyMenuBridge`).
+> The 1.x sources stay in `hud/` and `example/`.
 
 ## What you get
 
-* **One entity, per-player state.** Ten players can read different text and see different highlights
-  from the same panel.
-* **A small API** — `Show`, `Hide`, `SetText`, `SetClass`, and a `Clicked` event.
-* **The B key.** `BuyMenuBridge` opens the same panel with the stock buy-menu key: it keeps buying
-  enabled, blocks stock purchases and captures the cursor while the stock menu is open. You only decide
-  who may have it.
-* **The failure modes already handled**: orphaned entities after a reload, panels respawning on map
-  change, stale per-player state, cursors that will not release, the entity-system trap on a cold start.
-* **A working example** — layout, stylesheet, build script and a short plugin that opens both ways.
-* **[docs/GOTCHAS.md](docs/GOTCHAS.md)** — every dead end we hit, with the exact error text, so you do
-  not spend an evening on them like we did.
+| | |
+|---|---|
+| **Toasts** | Dark frosted cards with a coloured edge and a quiet pixel pattern. Five styles (info, success, warning, danger, neutral), up to four on screen: a new toast slides in at the bottom, the rest glide up when one leaves. Optional message line, link line and sound. Never takes the cursor. |
+| **Votes** | A vote card on the left: question, 2–5 options with live counts and bars, a countdown, the result with the winner highlighted. Yes/no or multiple choice. Players answer with `!1`…`!5` in chat — the line is counted and never shows in chat. Stock CS2 vote sounds. |
+| **Panel** | Your own layout on screen, per player: text, classes, cursor capture, hiding parts of the stock HUD, click routing — several panels at once. |
+| **BuyMenuBridge** | Open any panel with the stock buy-menu key B: no binds, no chat command. |
+| **Housekeeping** | Entities created at the first safe moment of each map, orphans from a crash or reload removed (only yours), per-slot state cleared when a new player takes the slot, `css_uikit` diagnostics. |
 
 ## Install
 
-1. Copy `src/HudPanel.cs` into your plugin project — and `src/BuyMenuBridge.cs` if you want the B key.
-   Two files, no dependencies beyond CounterStrikeSharp 1.0.374 or newer.
-2. Copy `hud/` into your repository — that is the layout, the stylesheet and the build script.
-3. Install the **Counter-Strike 2 Workshop Tools**. They are not in Steam's tools list: launch CS2 →
-   Settings → search *"Install Counter-Strike Workshop Tools"* → Yes → quit the game.
-4. Compile and ship the layout (below).
+1. **Server:** add the library to your plugin — reference `src/CS2UIKit/CS2UIKit.csproj` (or copy `src/CS2UIKit`)
+   and ship `CS2UIKit.dll` next to your plugin's dll. CounterStrikeSharp 1.0.374 or newer.
+2. **Clients:** the windows are a Workshop addon —
+   [CS2UIKit](https://steamcommunity.com/sharedfiles/filedetails/?id=3807024759) (ID `3807024759`). Deliver it with
+   [MultiAddonManager](https://github.com/Source2ZE/MultiAddonManager): add `3807024759` to
+   `mm_client_extra_addons` (a client addon — not `mm_extra_addons`, the server does not need it).
+3. Call `UIKit.Init(this, hotReload)` in `Load` and `UIKit.Shutdown()` in `Unload`.
 
-## Use
+Try everything with the **Showcase** plugin in `examples/Showcase`: `css_toast [random|info|success|warning|danger|neutral|all]`,
+`css_uivote [3|4|5]`, `css_toastsound <event>`.
+
+## Toasts
 
 ```csharp
-private HudPanel? _panel;
+Toasts.Show(player, "Round started", "One of you is already infected.", ToastStyle.Warning);
+Toasts.ShowAll("Map change in 5 s — Inferno", style: ToastStyle.Warning, seconds: 6);
+Toasts.Show(player, "Unit invite", "Last Hope wants you in.", ToastStyle.Neutral, link: "https://example.com");
 
-public override void Load(bool hotReload)
-{
-    _panel = new HudPanel("panorama/layout/custom_game/my_menu.xml", m => Logger.LogInformation(m));
-    _panel.Clicked += (player, buttonId) => player.PrintToChat($"clicked {buttonId}");
-    _panel.Start(this, hotReload);   // the flag matters — GOTCHAS, "Entity system yet is not initialized"
-}
-
-// Not optional — see GOTCHAS.
-public override void Unload(bool hotReload) => _panel?.Stop(this);
-
-private void OpenFor(CCSPlayerController player)
-{
-    _panel!.SetText(player, "my_title", "Hello");
-    _panel!.SetClass(player, "my_row_0", "locked", true);
-    _panel!.Show(player, "my_root");
-}
+Toasts.Position = ToastPosition.BottomRight;          // where the stack sits
+Toasts.Sound = "UIPanorama.tab_mainmenu_news";         // the default; null for silence
+Toasts.StyleSounds[ToastStyle.Neutral] = "";           // per style
 ```
 
-The layout supplies the shape, your plugin supplies the state:
+## Votes
 
-```xml
-<Panel id="my_root" class="window" hittest="true">
-  <Label id="my_title" text="{s:text}" />
-  <Button id="my_row_0" class="row"><Label text="AK-47" /></Button>
-</Panel>
+```csharp
+var denied = Votes.Start(new VoteRequest
+{
+    Question = "Restart the round?",        // no Options — a yes/no vote
+    Seconds = 20,
+    PassShare = 0.5,                        // yes/no: share of the votes cast that "yes" needs
+}, result =>
+{
+    if (result.Passed) Server.ExecuteCommand("mp_restartgame 1");
+});
+if (denied != VoteDenied.None) player.PrintToChat($"No vote: {denied}");   // Busy, Cooldown, Empty, BadOptions
 ```
+
+Per-player translations: `QuestionFor`, `OptionsFor`, and `Votes.Texts = player => new VoteTexts(Header: "Голосование", …)`.
+The vote ends early when everyone has voted. `Votes.Cast` fires on every vote; `Votes.Cancel()` stops a running one.
+
+**Why chat and not F1/F2:** CS2 sends `vote option1…5` only while its own vote panel is up, and that panel cannot be
+hidden — it draws under the card. Without it the keys send nothing (and neither do digits: weapon switching never
+reaches the server). A player who wants keys can bind them once: `bind f1 css_1`.
+
+## Your own panels
+
+```csharp
+var panel = new Panel("panorama/layout/custom_game/my_menu.xml", new PanelOptions { Root = "my_root" });
+panel.Clicked += c => c.Player.PrintToChat($"clicked {c.ButtonId}");
+
+panel.SetText(player, "my_title", "Hello");
+panel.SetClass(player, "my_row_0", "locked", true);
+panel.SetVariant(player, "my_bar", "w", "7");   // swaps w* classes: the server can send classes, not widths
+panel.Show(player);
+```
+
+The layout supplies the shape, the plugin the state — `<Label id="my_title" text="{s:text}" />`. Build it into a
+Workshop addon with `hud/build.ps1` (`kit/build.ps1` builds this library's own addon).
+[docs/GOTCHAS.md](docs/GOTCHAS.md) has every dead end we hit, with the exact error text.
 
 ## Opening on B
 
-The server cannot see the B key and cannot rebind it. But while the stock buy menu is open, the client
-puts the class `HUD_BUYMENU_VISIBLE` on the HUD root — and your layout lives inside that root. So the
-plugin only marks who is *allowed* the panel, and one stylesheet rule shows it:
-
-```css
-.HUD_BUYMENU_VISIBLE .my-window.native { visibility: visible; opacity: 1; position: 0px 0px 0px; }
-```
-
 ```csharp
-private BuyMenuBridge? _bridge;
-
-public override void Load(bool hotReload)
-{
-    // …after _panel.Start(this, hotReload)
-    _bridge = new BuyMenuBridge(_panel, "my_window", "my_dim");
-    _bridge.Prepare += Draw;        // the client opens the panel on its own: content must be there first
-    _bridge.Start(this, hotReload);
-}
-
-public override void Unload(bool hotReload)
-{
-    _bridge?.Stop(this);
-    _panel?.Stop(this);
-}
-
-// Whenever your rules change — on spawn, on death, when a phase ends:
-_bridge.Allow(player, alive && mayBuy);
-
-// A Close button: the server cannot hide a panel the client holds open, so ask the client.
-_bridge.Close(player);
+var bridge = new BuyMenuBridge(panel, "my_window", "my_dim");
+bridge.Prepare += Draw;               // the client opens the panel itself: content must be ready first
+bridge.Start(this, hotReload);
+bridge.Allow(player, alive && mayBuy);
 ```
 
-Behind that, the bridge keeps `mp_buy_anywhere 1` and `mp_buytime 60000` (the game-mode config resets
-them every round), answers `buy` / `autobuy` / `rebuy` with `Handled` so the stock menu under yours
-cannot sell anything, and captures the cursor between the client's `open_buymenu` and `close_buymenu`
-commands — hover works without capture, clicks do not.
+While the stock buy menu is open, the client puts `HUD_BUYMENU_VISIBLE` on the HUD root; one stylesheet rule shows
+your panel. The bridge keeps buying enabled, blocks stock purchases and captures the cursor between the client's
+`open_buymenu` / `close_buymenu`. Details in [GOTCHAS](docs/GOTCHAS.md#opening-your-panel-with-the-b-key).
 
-Your layout needs a full-screen backdrop with `hittest="true"` and a near-opaque background: the stock
-menu is open underneath, and a click between your tiles would land on one of its tiles. The example has
-one.
+## CS2 1.41.8.x (September 2026)
 
-This is what the buy menu in PROJECT ZERO runs on.
-[GOTCHAS](docs/GOTCHAS.md#opening-your-panel-with-the-b-key) has the full story, including the advice
-we used to give and have withdrawn.
+The 1.41.8.2 / 1.41.8.3 updates broke two things around this library — both outside it, both with workarounds:
 
-## Shipping the layout
-
-The panel's structure is a Panorama resource, so it has to reach the client before anything renders.
-
-```powershell
-powershell -File hud/build.ps1
-```
-
-This copies the sources into a CS2 addon and compiles them to `.vxml_c` / `.vcss_c`. Then publish the
-addon to the Workshop and have [MultiAddonManager](https://github.com/Source2ZE/MultiAddonManager)
-deliver it to players. Players only get a new layout when the addon is republished — a plugin deploy
-alone leaves them with the old menu.
-
-**While developing you do not need any of that**: drop the compiled files straight into
-`game/csgo/panorama/layout/custom_game/` and `game/csgo/panorama/styles/custom_game/`, and your own
-client will load them. Restart the game after each change — Panorama caches layouts for the session.
+* **Texts go empty after a player joins** (classes still work). The game clears the "is set" flag of a slot's texts
+  when a player takes the slot, and CounterStrikeSharp 1.0.374 only updates the value afterwards
+  ([CounterStrikeSharp #1434](https://github.com/roflmuffin/CounterStrikeSharp/pull/1434)). Call `UIKit.Rebuild()`
+  a moment after `EventPlayerConnectFull` (we use 1.5 s): the panels are recreated and every text is added anew.
+  Remove it once CounterStrikeSharp ships the fix.
+* **Clients do not get the addon.** MultiAddonManager 1.5.4 stopped sending `mm_client_extra_addons`
+  ([MultiAddonManager #75](https://github.com/Source2ZE/MultiAddonManager/issues/75)); 1.6.1 fixes it but needs a
+  newer Metamod than CounterStrikeSharp 1.0.374 runs on. We build 1.5.4 with the two offsets from 1.6.1
+  (`g_iServerAddonsOffset = 376`, `g_iClientListOffset = 616`). Check: the server log line
+  `S2C_CONNECTION … [addons:'…,3807024759']` when a player connects.
 
 ## Requirements
 
 * CS2 with the 24 August 2026 update or newer
 * CounterStrikeSharp 1.0.374 or newer
-* Counter-Strike 2 Workshop Tools, to compile the layout
+* For your own layouts: Counter-Strike 2 Workshop Tools (CS2 → Settings → *Install Counter-Strike Workshop Tools*)
 
 ## Where this came from
 
-We built this for **[PROJECT ZERO](https://project-z0.ru/en)** — a CS2 world about the first day of an
-outbreak, where the game and the website are two halves of the same thing. The round shop in the
-screenshot is ours: it needed to show a full catalogue with unlock ratings, which the stock buy menu
-cannot do because it only lists what a player put in their loadout.
-
-Having built it, it seemed worth sharing: there is a wrapper for this API in SwiftlyS2, but nothing
-for CounterStrikeSharp. If it saves you an evening, that is the point.
+Built for **[PROJECT ZERO](https://project-z0.ru/en)** — a CS2 world about the first day of an outbreak, where the game
+and the website are two halves of the same thing. Every window here runs on its server first.
 
 ## Changelog
 
-* **1.1 — 21 September 2026.** `BuyMenuBridge`: the panel opens on the stock B key. `HudPanel.Start`
-  now takes the `hotReload` flag and spawns on round start, which closes the entity-system trap on a
-  cold start. `CaptureInput`, `EnsureSpawned` and `Entity` added. Eight new gotchas. The buy-menu
-  advice of 1.0 ("disable buying") was wrong and is withdrawn.
-* **1.0 — 11 September 2026.** First release.
+* **2.0.0-preview.1 — 24 September 2026.** Renamed to CS2UIKit. Ready-made toasts and votes shipped as a Workshop
+  addon; `UIKit` engine (several panels, click routing, cleanup, diagnostics); `Panel` with options and variants;
+  `BuyMenuBridge` ported; `UIKit.Rebuild` for CS2 1.41.8.x; Showcase plugin.
+* **1.1 — 21 September 2026.** HudPanel: the panel opens on the stock B key; cold-start entity trap closed.
+* **1.0 — 11 September 2026.** HudPanel: first release.
 
 ## Licence
 

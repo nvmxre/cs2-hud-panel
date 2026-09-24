@@ -308,3 +308,42 @@ game client.
 On a live server there is a second reason: players get the layout from your Workshop addon, and a plugin
 deploy does not touch it. Until you republish the addon, everybody keeps the old menu — with the new
 server logic underneath it.
+
+---
+
+## The whole layout silently fails to load (CS2UIKit, 2026-09-23)
+
+Every panel id comes back as `Unable to find panel with id '…'` in the client console — the layout did not load at
+all, and nothing says why. Two causes we hit:
+
+* an inline `style="width: 5px; …"` attribute on a panel — move sizes and positions into classes;
+* an unquoted keyframes name: `@keyframes my-anim { … }`. Stock CS2 files always quote it:
+  `@keyframes 'my-anim' { … }` (the `animation-name` itself stays unquoted).
+
+A comma selector (`.a .x, .b .x { … }`) is best split into two rules for the same reason.
+
+---
+
+## F1 / F2 do nothing without the stock vote panel
+
+CS2 sends `vote option1…5` only while its own vote panel (`VoteStart`) is on screen. Raising the `vote_controller`
+state without the message does not help, and the stock panel cannot be hidden. Digits and F (inspect) never reach
+the server — weapon switching is client-side. CS2UIKit votes therefore answer through chat (`!1`…`!5`), swallowed by
+a `say` listener so they never show in chat.
+
+---
+
+## Texts empty after a player joins (CS2 1.41.8.x)
+
+Classes work, every `{s:text}` is blank. Since 1.41.8.2 the game clears `m_bIsSet` on a slot's dialog variables when
+a player takes the slot; CounterStrikeSharp 1.0.374 then only updates the value ([#1434](https://github.com/roflmuffin/CounterStrikeSharp/pull/1434)).
+You cannot set the flag from C#: `NetworkedVector` in CounterStrikeSharp only enumerates handles. Recreate the
+entities instead — `UIKit.Rebuild()` ~1.5 s after `EventPlayerConnectFull`. A hot reload "fixes" it for the same reason.
+
+---
+
+## Players get no addon after a CS2 update
+
+The server log line `S2C_CONNECTION … [addons:'…']` lists what a connecting player is told to download. Only the map
+there means MultiAddonManager lost `mm_client_extra_addons` — after CS2 1.41.8.x its internal offsets moved
+([MultiAddonManager #75](https://github.com/Source2ZE/MultiAddonManager/issues/75)).
