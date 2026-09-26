@@ -463,30 +463,35 @@
 	background-image: url( "s2r://panorama/styles/custom_game/cs2uikit/icon_neutral.vtex" );
 }
 
-/* ── appearance: white flash and digital glitch, as on the CS2 round-end panel (hud/hudwinpanel.vcss) ─────────
-   The glitch is the stock panorama/videos/digital_glitch.webm (not shipped in the addon). The video is assigned by the
-   `on` class, so it starts from the first frame; it needs a moment to start, so the layer stays for 1.5 s (the stock
-   panel's 0.7 s was too short here — the glitch was almost never seen). */
+/* ── appearance: white flash and digital glitch, the mechanism of the stock CS2 panels ─────────────────────────
+   (hud/hudalerts.css, hudhinttext.css, hudwinpanel.css): the video is always assigned, but the layer is COLLAPSED while
+   the card is hidden. A collapsed panel is not drawn, and when it becomes visible Panorama starts the video from its
+   first frame — so the dense part of the glitch (its first 0.7 s) always lands on the appearance. Additive blending
+   (Valve's `additive` class): black frames vanish, only the bright streaks in the style colour remain. Held 0.5 s,
+   faded in 0.2 s, as on the stock panels. The video is panorama/videos/digital_glitch.webm (not shipped here). */
 .toast-glitch
 {
+	visibility: collapse;
 	width: 100%;
 	height: 100%;
 	border-radius: 8px;
+	background-image: url( "file://{resources}/videos/digital_glitch.webm" );
 	background-size: auto auto;
+	-s2-mix-blend-mode: additive;
 	wash-color: #3f8cff;
-	opacity: 0.35;
+	opacity: 0.25;
 	brightness: 10;
+	transition-property: opacity, brightness;
+	transition-delay: 0.5s;
+	transition-duration: 0.2s;
+	transition-timing-function: ease-in;
 }
 
 .toast.on .toast-glitch
 {
-	background-image: url( "file://{resources}/videos/digital_glitch.webm" );
+	visibility: visible;
 	opacity: 0;
 	brightness: 1;
-	transition-property: opacity, brightness;
-	transition-delay: 1.5s;
-	transition-duration: 0.4s;
-	transition-timing-function: ease-in;
 }
 
 .toast-white
