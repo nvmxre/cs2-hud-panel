@@ -1,9 +1,11 @@
 """Writes kit/layout/cs2uikit_toasts.xml: four toast cards, each with a pixel layer under its content.
 
-A card is two layers on top of each other (the card itself does not flow):
+A card is layers on top of each other (the card itself does not flow):
   .toast-pixels — a calm field of small squares in the style colour, each breathing on its own cycle
                   (the same idea as PixelField on the website);
-  .toast-row    — the icon and the text, flowing right.
+  .toast-row    — the icon and the text, flowing right;
+  .toast-glitch — the stock digital_glitch.webm in the style colour, for the first second;
+  .toast-white  — a white flash that fades as the card appears (both as on the CS2 round-end panel).
 The pixel layout is a fixed table, not random numbers, so every card and every rebuild look the same.
 
 Run: python kit/make_toasts_layout.py
@@ -40,6 +42,8 @@ def card(i):
 							<Label id="t{i}_link" class="toast-link" text="{{s:text}}" />
 						</Panel>
 					</Panel>
+					<Panel class="toast-glitch" hittest="false" />
+					<Panel class="toast-white" hittest="false" />
 				</Panel>
 '''
 

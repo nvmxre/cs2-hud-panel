@@ -27,6 +27,8 @@
 							<Label id="t0_link" class="toast-link" text="{s:text}" />
 						</Panel>
 					</Panel>
+					<Panel class="toast-glitch" hittest="false" />
+					<Panel class="toast-white" hittest="false" />
 				</Panel>
 				<Panel id="t1" class="toast" hittest="false">
 					<Panel class="toast-pixels" hittest="false"><Panel class="toast-px px-a p0" hittest="false" /><Panel class="toast-px px-c p1" hittest="false" /><Panel class="toast-px px-b p2" hittest="false" /><Panel class="toast-px px-d p3" hittest="false" /><Panel class="toast-px px-c p4" hittest="false" /><Panel class="toast-px px-a p5" hittest="false" /><Panel class="toast-px px-d p6" hittest="false" /><Panel class="toast-px px-b p7" hittest="false" /><Panel class="toast-px px-c p8" hittest="false" /><Panel class="toast-px px-a p9" hittest="false" /><Panel class="toast-px px-d p10" hittest="false" /><Panel class="toast-px px-b p11" hittest="false" /></Panel>
@@ -40,6 +42,8 @@
 							<Label id="t1_link" class="toast-link" text="{s:text}" />
 						</Panel>
 					</Panel>
+					<Panel class="toast-glitch" hittest="false" />
+					<Panel class="toast-white" hittest="false" />
 				</Panel>
 				<Panel id="t2" class="toast" hittest="false">
 					<Panel class="toast-pixels" hittest="false"><Panel class="toast-px px-a p0" hittest="false" /><Panel class="toast-px px-c p1" hittest="false" /><Panel class="toast-px px-b p2" hittest="false" /><Panel class="toast-px px-d p3" hittest="false" /><Panel class="toast-px px-c p4" hittest="false" /><Panel class="toast-px px-a p5" hittest="false" /><Panel class="toast-px px-d p6" hittest="false" /><Panel class="toast-px px-b p7" hittest="false" /><Panel class="toast-px px-c p8" hittest="false" /><Panel class="toast-px px-a p9" hittest="false" /><Panel class="toast-px px-d p10" hittest="false" /><Panel class="toast-px px-b p11" hittest="false" /></Panel>
@@ -53,6 +57,8 @@
 							<Label id="t2_link" class="toast-link" text="{s:text}" />
 						</Panel>
 					</Panel>
+					<Panel class="toast-glitch" hittest="false" />
+					<Panel class="toast-white" hittest="false" />
 				</Panel>
 				<Panel id="t3" class="toast" hittest="false">
 					<Panel class="toast-pixels" hittest="false"><Panel class="toast-px px-a p0" hittest="false" /><Panel class="toast-px px-c p1" hittest="false" /><Panel class="toast-px px-b p2" hittest="false" /><Panel class="toast-px px-d p3" hittest="false" /><Panel class="toast-px px-c p4" hittest="false" /><Panel class="toast-px px-a p5" hittest="false" /><Panel class="toast-px px-d p6" hittest="false" /><Panel class="toast-px px-b p7" hittest="false" /><Panel class="toast-px px-c p8" hittest="false" /><Panel class="toast-px px-a p9" hittest="false" /><Panel class="toast-px px-d p10" hittest="false" /><Panel class="toast-px px-b p11" hittest="false" /></Panel>
@@ -66,6 +72,8 @@
 							<Label id="t3_link" class="toast-link" text="{s:text}" />
 						</Panel>
 					</Panel>
+					<Panel class="toast-glitch" hittest="false" />
+					<Panel class="toast-white" hittest="false" />
 				</Panel>
 
 			</Panel>
